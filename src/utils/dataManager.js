@@ -70,3 +70,79 @@ export const exportToCSV = (data, filename) => {
     document.body.removeChild(link);
   }
 };
+
+export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate) => {
+  if (!dailyRecords || dailyRecords.length === 0) {
+    alert('No records to export for this date');
+    return;
+  }
+
+  // Get all unique services from the business data
+  const allServices = businessData.services || [];
+  
+  // Create headers: Date, Employee Name, [Service Names...], Total Income
+  const serviceHeaders = allServices.map(service => service.name);
+  const headers = ['Date', 'Employee Name', ...serviceHeaders, 'Total Income'];
+  
+  // Process each daily record into a row
+  const exportData = dailyRecords.map(record => {
+    const employeeName = getEmployeeName(record.employeeId, businessData);
+    
+    // Create the row data
+    const row = {
+      'Date': record.date,
+      'Employee Name': employeeName,
+      'Total Income': record.total
+    };
+    
+    // Add service quantities to the row
+    serviceHeaders.forEach(serviceName => {
+      const service = allServices.find(s => s.name === serviceName);
+      if (service) {
+        const quantity = record.services[service.id] || 0;
+        row[serviceName] = quantity;
+      } else {
+        row[serviceName] = 0;
+      }
+    });
+    
+    return row;
+  });
+
+  // Convert to CSV format
+  const csvContent = [
+    headers.join(','),
+    ...exportData.map(row => 
+      headers.map(header => {
+        const value = row[header] || 0;
+        // Clean the value to avoid CSV formatting issues
+        if (typeof value === 'string') {
+          // Remove any commas, quotes, and line breaks that could break CSV
+          const cleanValue = value.replace(/[,"\n\r]/g, ' ').trim();
+          return `"${cleanValue}"`;
+        }
+        return value;
+      }).join(',')
+    )
+  ].join('\n');
+
+  // Create and download the file
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `daily_recap_${selectedDate}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
+// Helper function to get employee name
+const getEmployeeName = (employeeId, businessData) => {
+  const employee = businessData.employees.find(emp => emp.id === employeeId);
+  return employee ? employee.name : 'Unknown Employee';
+};

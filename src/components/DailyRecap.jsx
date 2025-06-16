@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Calendar, Download, Eye, User, DollarSign } from 'lucide-react';
-import { formatCurrency, exportToCSV } from '../utils/dataManager';
+import { formatCurrency, exportDailyRecapToExcel } from '../utils/dataManager';
 
 const DailyRecap = ({ businessData }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -24,27 +23,7 @@ const DailyRecap = ({ businessData }) => {
   const grandTotal = dailyRecords.reduce((sum, record) => sum + record.total, 0);
 
   const handleExport = () => {
-    if (dailyRecords.length === 0) {
-      alert('No records to export for this date');
-      return;
-    }
-
-    const exportData = dailyRecords.map(record => {
-      const employeeName = getEmployeeName(record.employeeId);
-      const serviceDetails = Object.entries(record.services)
-        .filter(([_, quantity]) => quantity > 0)
-        .map(([serviceId, quantity]) => `${getServiceName(serviceId)}: ${quantity}`)
-        .join('; ');
-      
-      return {
-        Date: record.date,
-        Employee: employeeName,
-        Services: serviceDetails,
-        Total: record.total
-      };
-    });
-
-    exportToCSV(exportData, `daily_recap_${selectedDate}`);
+    exportDailyRecapToExcel(dailyRecords, businessData, selectedDate);
   };
 
   return (
@@ -62,7 +41,7 @@ const DailyRecap = ({ businessData }) => {
               className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
             >
               <Download size={20} />
-              <span>Export CSV</span>
+              <span>Export Excel</span>
             </button>
           )}
         </div>
