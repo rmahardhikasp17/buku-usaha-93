@@ -1,3 +1,6 @@
+
+import * as XLSX from 'xlsx';
+
 const STORAGE_KEY = 'business_bookkeeping_data';
 
 export const loadData = () => {
