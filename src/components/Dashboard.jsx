@@ -5,60 +5,69 @@ import { getTodayTotal, formatCurrency } from '../utils/dataManager';
 
 const Dashboard = ({ businessData }) => {
   const todayTotal = getTodayTotal(businessData);
-  const today = new Date().toLocaleDateString();
+  const today = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
   const stats = [
     {
-      title: 'Total Services',
+      title: 'Total Layanan',
       value: businessData.services.length,
       icon: Package,
-      color: 'bg-blue-500'
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600'
     },
     {
-      title: 'Total Employees',
+      title: 'Total Karyawan',
       value: businessData.employees.length,
       icon: Users,
-      color: 'bg-green-500'
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600'
     },
     {
-      title: "Today's Revenue",
+      title: 'Pendapatan Hari Ini',
       value: formatCurrency(todayTotal),
       icon: DollarSign,
-      color: 'bg-purple-500'
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600'
     },
     {
-      title: 'Active Records',
+      title: 'Total Catatan',
       value: Object.keys(businessData.dailyRecords).length,
       icon: TrendingUp,
-      color: 'bg-orange-500'
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600'
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Welcome Section */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          Welcome to {businessData.businessName}
-        </h2>
-        <p className="text-gray-600">
-          Today is {today}. Here's your business overview.
+      <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <h1 className="text-3xl font-semibold text-gray-900 mb-3">
+          Selamat Datang di {businessData.businessName}
+        </h1>
+        <p className="text-gray-600 text-lg">
+          {today}. Berikut ringkasan bisnis Anda.
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
                 </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  <Icon className="text-white" size={24} />
+                <div className={`${stat.bgColor} p-4 rounded-xl`}>
+                  <Icon className={stat.iconColor} size={24} />
                 </div>
               </div>
             </div>
@@ -66,40 +75,21 @@ const Dashboard = ({ businessData }) => {
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-blue-400 transition-colors">
-            <Package className="mx-auto text-gray-400 mb-2" size={32} />
-            <p className="text-sm text-gray-600">Manage Services</p>
+      {/* Getting Started */}
+      <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Memulai</h2>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <p className="text-gray-700">Tambahkan layanan dan tetapkan harganya</p>
           </div>
-          <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-green-400 transition-colors">
-            <Users className="mx-auto text-gray-400 mb-2" size={32} />
-            <p className="text-sm text-gray-600">Manage Employees</p>
+          <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <p className="text-gray-700">Daftarkan karyawan Anda</p>
           </div>
-          <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-purple-400 transition-colors">
-            <DollarSign className="mx-auto text-gray-400 mb-2" size={32} />
-            <p className="text-sm text-gray-600">Record Daily Income</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Getting Started</h3>
-        <div className="space-y-3">
-          <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <p className="text-sm text-gray-700">Add your services and set their prices</p>
-          </div>
-          <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <p className="text-sm text-gray-700">Register your employees</p>
-          </div>
-          <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
-            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-            <p className="text-sm text-gray-700">Start recording daily income</p>
+          <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <p className="text-gray-700">Mulai catat pendapatan harian</p>
           </div>
         </div>
       </div>

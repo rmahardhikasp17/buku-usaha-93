@@ -8,6 +8,7 @@ import DailyInput from '../components/DailyInput';
 import DailyRecap from '../components/DailyRecap';
 import Settings from '../components/Settings';
 import { loadData, saveData } from '../utils/dataManager';
+import { Toaster } from '../components/ui/toaster';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -59,9 +60,10 @@ const Index = () => {
         setCurrentPage={setCurrentPage}
         businessName={businessData.businessName}
       />
-      <main className="container mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-4 py-8">
         {renderCurrentPage()}
       </main>
+      <Toaster />
     </div>
   );
 };
