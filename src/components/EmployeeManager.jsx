@@ -1,46 +1,84 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Save, X, User } from 'lucide-react';
+import { formatCurrency } from '../utils/dataManager';
 
 const EmployeeManager = ({ businessData, updateBusinessData }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    role: '',
+    totalIncome: '',
+    netIncome: 0
+  });
+
+  // Calculate net income when role or total income changes
+  useEffect(() => {
+    if (formData.role && formData.totalIncome) {
+      const totalIncome = parseFloat(formData.totalIncome) || 0;
+      let netIncome = 0;
+
+      if (formData.role === 'Karyawan') {
+        netIncome = totalIncome * 0.5; // 50% for employees
+      } else if (formData.role === 'Owner') {
+        netIncome = totalIncome - 40000; // Total income - 40000 for owner
+      }
+
+      setFormData(prev => ({ ...prev, netIncome }));
+    } else {
+      setFormData(prev => ({ ...prev, netIncome: 0 }));
+    }
+  }, [formData.role, formData.totalIncome]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    if (!formData.name.trim() || !formData.role || !formData.totalIncome) return;
 
     const newEmployee = {
       id: Date.now().toString(),
-      name: formData.name.trim()
+      name: formData.name.trim(),
+      role: formData.role,
+      totalIncome: parseFloat(formData.totalIncome),
+      netIncome: formData.netIncome
     };
 
     const updatedEmployees = [...businessData.employees, newEmployee];
     updateBusinessData({ employees: updatedEmployees });
     
-    setFormData({ name: '' });
+    setFormData({ name: '', role: '', totalIncome: '', netIncome: 0 });
     setIsAdding(false);
   };
 
   const handleEdit = (employee) => {
     setEditingId(employee.id);
-    setFormData({ name: employee.name });
+    setFormData({ 
+      name: employee.name,
+      role: employee.role || '',
+      totalIncome: employee.totalIncome?.toString() || '',
+      netIncome: employee.netIncome || 0
+    });
   };
 
   const handleUpdate = (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    if (!formData.name.trim() || !formData.role || !formData.totalIncome) return;
 
     const updatedEmployees = businessData.employees.map(employee =>
       employee.id === editingId
-        ? { ...employee, name: formData.name.trim() }
+        ? { 
+            ...employee, 
+            name: formData.name.trim(),
+            role: formData.role,
+            totalIncome: parseFloat(formData.totalIncome),
+            netIncome: formData.netIncome
+          }
         : employee
     );
 
     updateBusinessData({ employees: updatedEmployees });
     setEditingId(null);
-    setFormData({ name: '' });
+    setFormData({ name: '', role: '', totalIncome: '', netIncome: 0 });
   };
 
   const handleDelete = (employeeId) => {
@@ -53,8 +91,91 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: '' });
+    setFormData({ name: '', role: '', totalIncome: '', netIncome: 0 });
   };
+
+  const renderForm = (onSubmit, submitText) => (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Nama
+        </label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="e.g., John Doe"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Role
+        </label>
+        <select
+          value={formData.role}
+          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          required
+        >
+          <option value="">Pilih Role</option>
+          <option value="Owner">Owner</option>
+          <option value="Karyawan">Karyawan</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Total Pendapatan
+        </label>
+        <input
+          type="number"
+          value={formData.totalIncome}
+          onChange={(e) => setFormData({ ...formData, totalIncome: e.target.value })}
+          placeholder="e.g., 1000000"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          required
+          min="0"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Penghasilan Bersih
+        </label>
+        <input
+          type="text"
+          value={formatCurrency(formData.netIncome)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+          readOnly
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          {formData.role === 'Karyawan' && 'Dihitung otomatis: 50% dari Total Pendapatan'}
+          {formData.role === 'Owner' && 'Dihitung otomatis: Total Pendapatan - Rp 40.000'}
+        </p>
+      </div>
+
+      <div className="flex space-x-3">
+        <button
+          type="submit"
+          className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+        >
+          <Save size={18} />
+          <span>{submitText}</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="flex items-center space-x-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+        >
+          <X size={18} />
+          <span>Cancel</span>
+        </button>
+      </div>
+    </form>
+  );
 
   return (
     <div className="space-y-6">
@@ -81,38 +202,7 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
       {isAdding && (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Employee</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Employee Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., John Doe"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div className="flex space-x-3">
-              <button
-                type="submit"
-                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Save size={18} />
-                <span>Save Employee</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="flex items-center space-x-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                <X size={18} />
-                <span>Cancel</span>
-              </button>
-            </div>
-          </form>
+          {renderForm(handleSubmit, "Save Employee")}
         </div>
       )}
 
@@ -143,40 +233,37 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
             {businessData.employees.map((employee) => (
               <div key={employee.id} className="border border-gray-200 rounded-lg p-4">
                 {editingId === employee.id ? (
-                  <form onSubmit={handleUpdate} className="space-y-3">
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
-                    />
-                    <div className="flex space-x-2">
-                      <button
-                        type="submit"
-                        className="flex items-center space-x-1 bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors text-sm"
-                      >
-                        <Save size={14} />
-                        <span>Save</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancel}
-                        className="flex items-center space-x-1 bg-gray-500 text-white px-3 py-1.5 rounded-lg hover:bg-gray-600 transition-colors text-sm"
-                      >
-                        <X size={14} />
-                        <span>Cancel</span>
-                      </button>
-                    </div>
-                  </form>
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-800 mb-3">Edit Employee</h4>
+                    {renderForm(handleUpdate, "Update Employee")}
+                  </div>
                 ) : (
                   <>
                     <div className="flex items-center space-x-3 mb-3">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                         <User className="text-green-600" size={20} />
                       </div>
-                      <h4 className="text-lg font-medium text-gray-800">{employee.name}</h4>
+                      <div>
+                        <h4 className="text-lg font-medium text-gray-800">{employee.name}</h4>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          employee.role === 'Owner' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {employee.role || 'No Role'}
+                        </span>
+                      </div>
                     </div>
+                    
+                    <div className="space-y-2 mb-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Total Pendapatan:</span>
+                        <span className="font-medium">{formatCurrency(employee.totalIncome || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Penghasilan Bersih:</span>
+                        <span className="font-medium text-green-600">{formatCurrency(employee.netIncome || 0)}</span>
+                      </div>
+                    </div>
+
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(employee)}
