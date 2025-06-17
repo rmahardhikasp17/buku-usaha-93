@@ -54,16 +54,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <Navigation 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage}
         businessName={businessData.businessName}
       />
-      <main className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          {renderCurrentPage()}
-        </div>
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {renderCurrentPage()}
       </main>
       <Toaster />
     </div>
