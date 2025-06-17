@@ -1,3 +1,4 @@
+
 const STORAGE_KEY = 'business_bookkeeping_data';
 
 export const loadData = () => {
@@ -108,124 +109,35 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
     return row;
   });
 
-  // Create workbook and worksheet
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-  // Set column widths (auto-fit)
-  const columnWidths = headers.map(header => {
-    const maxLength = Math.max(
-      header.length,
-      ...exportData.map(row => String(row[header] || '').length)
-    );
-    return { wch: Math.min(Math.max(maxLength + 2, 10), 30) };
-  });
-  worksheet['!cols'] = columnWidths;
-
-  // Create table range
-  const range = XLSX.utils.decode_range(worksheet['!ref']);
-  const tableRange = {
-    s: { c: range.s.c, r: range.s.r },
-    e: { c: range.e.c, r: range.e.r }
-  };
-
-  // Add table formatting
-  worksheet['!tables'] = [{
-    ref: XLSX.utils.encode_range(tableRange),
-    name: 'DailyRecapTable',
-    displayName: 'Daily Recap',
-    headerRowCount: 1,
-    totalsRowShown: false,
-    style: {
-      theme: 'TableStyleMedium2',
-      showFirstColumn: false,
-      showLastColumn: false,
-      showRowStripes: true,
-      showColumnStripes: false
-    }
-  }];
-
-  // Format cells
-  const totalIncomeColIndex = headers.indexOf('Total Income');
-  
-  // Apply formatting to each cell
-  for (let row = 0; row <= range.e.r; row++) {
-    for (let col = 0; col <= range.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-      const cell = worksheet[cellAddress];
-      
-      if (!cell) continue;
-      
-      // Header row formatting
-      if (row === 0) {
-        cell.s = {
-          font: { bold: true, color: { rgb: "FFFFFF" } },
-          fill: { fgColor: { rgb: "4472C4" } },
-          border: {
-            top: { style: "thin", color: { rgb: "000000" } },
-            bottom: { style: "thin", color: { rgb: "000000" } },
-            left: { style: "thin", color: { rgb: "000000" } },
-            right: { style: "thin", color: { rgb: "000000" } }
-          },
-          alignment: { horizontal: "center", vertical: "center" }
-        };
-      } else {
-        // Data rows formatting
-        const isEvenRow = row % 2 === 0;
-        const bgColor = isEvenRow ? "F2F2F2" : "FFFFFF";
-        
-        cell.s = {
-          border: {
-            top: { style: "thin", color: { rgb: "D0D0D0" } },
-            bottom: { style: "thin", color: { rgb: "D0D0D0" } },
-            left: { style: "thin", color: { rgb: "D0D0D0" } },
-            right: { style: "thin", color: { rgb: "D0D0D0" } }
-          },
-          fill: { fgColor: { rgb: bgColor } },
-          alignment: { horizontal: "left", vertical: "center" }
-        };
-        
-        // Currency formatting for Total Income column
-        if (col === totalIncomeColIndex && cell.v) {
-          cell.s.numFmt = '"Rp "#,##0';
-          cell.s.alignment = { horizontal: "right", vertical: "center" };
+  // Convert to CSV format
+  const csvContent = [
+    headers.join(','),
+    ...exportData.map(row => 
+      headers.map(header => {
+        const value = row[header] || 0;
+        // Clean the value to avoid CSV formatting issues
+        if (typeof value === 'string') {
+          // Remove any commas, quotes, and line breaks that could break CSV
+          const cleanValue = value.replace(/[,"\n\r]/g, ' ').trim();
+          return `"${cleanValue}"`;
         }
-        
-        // Number formatting for service quantity columns
-        if (col > 1 && col < totalIncomeColIndex && typeof cell.v === 'number') {
-          cell.s.alignment = { horizontal: "center", vertical: "center" };
-        }
-      }
-    }
-  }
+        return value;
+      }).join(',')
+    )
+  ].join('\n');
 
-  // Add autofilter (Excel table automatically includes this, but we'll ensure it)
-  worksheet['!autofilter'] = tableRange;
-
-  // Add worksheet to workbook
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Daily Recap');
-
-  // Generate Excel file and download
-  const excelBuffer = XLSX.write(workbook, { 
-    bookType: 'xlsx', 
-    type: 'array',
-    cellStyles: true
-  });
-  
-  const blob = new Blob([excelBuffer], { 
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-  });
-  
+  // Create and download the file
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
+  
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `daily_recap_${selectedDate}.xlsx`);
+    link.setAttribute('download', `daily_recap_${selectedDate}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   }
 };
 
