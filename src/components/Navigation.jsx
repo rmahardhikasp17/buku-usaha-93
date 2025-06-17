@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Home, Package, Users, PlusCircle, BarChart3, Settings, Menu, X } from 'lucide-react';
+import { Home, Package, Users, PlusCircle, BarChart3, Settings, Menu, X, DollarSign } from 'lucide-react';
 
 const Navigation = ({ currentPage, setCurrentPage, businessName }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -10,6 +9,7 @@ const Navigation = ({ currentPage, setCurrentPage, businessName }) => {
     { id: 'services', label: 'Services', icon: Package },
     { id: 'employees', label: 'Employees', icon: Users },
     { id: 'daily-input', label: 'Daily Input', icon: PlusCircle },
+    { id: 'transactions', label: 'Pemasukan & Pengeluaran', icon: DollarSign },
     { id: 'daily-recap', label: 'Daily Recap', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
