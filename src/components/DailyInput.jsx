@@ -1,25 +1,63 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, User, Save, Plus } from 'lucide-react';
 import { formatCurrency } from '../utils/dataManager';
 
 const DailyInput = ({ businessData, updateBusinessData }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [selectedEmployeeData, setSelectedEmployeeData] = useState(null);
   const [serviceQuantities, setServiceQuantities] = useState({});
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [potongan, setPotongan] = useState(0);
+  const [gajiDiterima, setGajiDiterima] = useState(0);
+
+  // Update selected employee data when employee changes
+  useEffect(() => {
+    if (selectedEmployee) {
+      const employee = businessData.employees.find(emp => emp.id === selectedEmployee);
+      setSelectedEmployeeData(employee);
+    } else {
+      setSelectedEmployeeData(null);
+    }
+  }, [selectedEmployee, businessData.employees]);
+
+  // Calculate total revenue when service quantities change
+  useEffect(() => {
+    const total = businessData.services.reduce((sum, service) => {
+      const quantity = serviceQuantities[service.id] || 0;
+      return sum + (service.price * quantity);
+    }, 0);
+    setTotalRevenue(total);
+  }, [serviceQuantities, businessData.services]);
+
+  // Calculate potongan and gaji diterima when total revenue or employee changes
+  useEffect(() => {
+    if (selectedEmployeeData && totalRevenue > 0) {
+      let calculatedPotongan = 0;
+      let calculatedGajiDiterima = 0;
+
+      if (selectedEmployeeData.role === 'Karyawan') {
+        calculatedPotongan = totalRevenue * 0.5; // 50% dari Total Revenue
+        calculatedGajiDiterima = (totalRevenue * 0.5) + 10000; // 50% + uang hadir 10000
+      } else if (selectedEmployeeData.role === 'Owner') {
+        calculatedPotongan = 40000; // Fixed 40000
+        calculatedGajiDiterima = totalRevenue - 40000; // Total Revenue - 40000
+      }
+
+      setPotongan(calculatedPotongan);
+      setGajiDiterima(calculatedGajiDiterima);
+    } else {
+      setPotongan(0);
+      setGajiDiterima(0);
+    }
+  }, [totalRevenue, selectedEmployeeData]);
 
   const handleServiceQuantityChange = (serviceId, quantity) => {
     setServiceQuantities(prev => ({
       ...prev,
       [serviceId]: parseInt(quantity) || 0
     }));
-  };
-
-  const calculateTotal = () => {
-    return businessData.services.reduce((total, service) => {
-      const quantity = serviceQuantities[service.id] || 0;
-      return total + (service.price * quantity);
-    }, 0);
   };
 
   const handleSubmit = (e) => {
@@ -39,8 +77,12 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
     const newRecord = {
       date: selectedDate,
       employeeId: selectedEmployee,
+      employeeName: selectedEmployeeData.name,
+      employeeRole: selectedEmployeeData.role,
       services: serviceQuantities,
-      total: calculateTotal()
+      totalRevenue: totalRevenue,
+      potongan: potongan,
+      gajiDiterima: gajiDiterima
     };
 
     const updatedRecords = {
@@ -52,10 +94,9 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
     
     // Reset form
     setServiceQuantities({});
+    setSelectedEmployee('');
     alert('Daily record saved successfully!');
   };
-
-  const total = calculateTotal();
 
   if (businessData.services.length === 0 || businessData.employees.length === 0) {
     return (
@@ -130,9 +171,24 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
           </div>
         </div>
 
-        {/* Services Input */}
+        {/* Employee Role Display */}
+        {selectedEmployeeData && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role
+            </label>
+            <input
+              type="text"
+              value={selectedEmployeeData.role}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+              readOnly
+            />
+          </div>
+        )}
+
+        {/* Service Selection */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Service Quantities</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Service Selection</h3>
           <div className="space-y-4">
             {businessData.services.map((service) => (
               <div key={service.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
@@ -159,12 +215,40 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
           </div>
         </div>
 
-        {/* Total and Submit */}
-        <div className="border-t border-gray-200 pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-lg font-semibold text-gray-800">Total Revenue:</span>
-            <span className="text-2xl font-bold text-green-600">{formatCurrency(total)}</span>
+        {/* Calculations Summary */}
+        <div className="border-t border-gray-200 pt-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Total Revenue</label>
+              <div className="text-xl font-bold text-blue-600">{formatCurrency(totalRevenue)}</div>
+            </div>
+            
+            <div className="bg-red-50 p-4 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Potongan</label>
+              <div className="text-xl font-bold text-red-600">{formatCurrency(potongan)}</div>
+              {selectedEmployeeData && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedEmployeeData.role === 'Karyawan' && '50% dari Total Revenue'}
+                  {selectedEmployeeData.role === 'Owner' && 'Fixed Rp 40.000'}
+                </p>
+              )}
+            </div>
+            
+            <div className="bg-green-50 p-4 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Gaji Diterima</label>
+              <div className="text-xl font-bold text-green-600">{formatCurrency(gajiDiterima)}</div>
+              {selectedEmployeeData && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedEmployeeData.role === 'Karyawan' && '50% Revenue + Rp 10.000 (uang hadir)'}
+                  {selectedEmployeeData.role === 'Owner' && 'Total Revenue - Rp 40.000'}
+                </p>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="border-t border-gray-200 pt-6">
           <button
             type="submit"
             className="w-full flex items-center justify-center space-x-2 bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors"
