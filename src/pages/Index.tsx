@@ -6,24 +6,15 @@ import ServicesManager from '../components/ServicesManager';
 import EmployeeManager from '../components/EmployeeManager';
 import DailyInput from '../components/DailyInput';
 import TransactionForm from '../components/TransactionForm';
-import SisaPendapatan from '../components/SisaPendapatan';
 import DailyRecap from '../components/DailyRecap';
+import MonthlyReport from '../components/MonthlyReport';
 import Settings from '../components/Settings';
 import { loadData, saveData } from '../utils/dataManager';
 
-interface BusinessData {
-  businessName: string;
-  services: any[];
-  employees: any[];
-  dailyRecords: Record<string, any>;
-  transactions: Record<string, any>;
-  sisaPendapatanRecords: Record<string, any>;
-}
-
-const Index = () => {
+const Index: React.FC = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [businessData, setBusinessData] = useState<BusinessData>({
-    businessName: 'My Business',
+  const [businessData, setBusinessData] = useState({
+    businessName: 'Nekat Mbois',
     services: [],
     employees: [],
     dailyRecords: {},
@@ -42,14 +33,14 @@ const Index = () => {
     saveData(businessData);
   }, [businessData]);
 
-  const updateBusinessData = (newData: Partial<BusinessData>) => {
+  const updateBusinessData = (newData: any) => {
     setBusinessData(prev => ({ ...prev, ...newData }));
   };
 
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard businessData={businessData} />;
+        return <Dashboard businessData={businessData} setCurrentPage={setCurrentPage} />;
       case 'services':
         return <ServicesManager businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'employees':
@@ -58,25 +49,25 @@ const Index = () => {
         return <DailyInput businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'transactions':
         return <TransactionForm businessData={businessData} updateBusinessData={updateBusinessData} />;
-      case 'sisa-pendapatan':
-        return <SisaPendapatan businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'daily-recap':
         return <DailyRecap businessData={businessData} />;
+      case 'monthly-report':
+        return <MonthlyReport businessData={businessData} />;
       case 'settings':
         return <Settings businessData={businessData} updateBusinessData={updateBusinessData} />;
       default:
-        return <Dashboard businessData={businessData} />;
+        return <Dashboard businessData={businessData} setCurrentPage={setCurrentPage} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Navigation 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage}
         businessName={businessData.businessName}
       />
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-8">
         {renderCurrentPage()}
       </main>
     </div>
