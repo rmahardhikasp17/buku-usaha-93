@@ -86,7 +86,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
     setFormData({ name: '', role: '' });
   };
 
-  const renderForm = (onSubmit: (e: React.FormEvent) => void, submitText: string) => (
+  const renderForm = (onSubmit: (e: React.FormEvent) => void) => (
     <form onSubmit={onSubmit} className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -97,7 +97,8 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., John Doe"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white font-inter"
+          style={{ borderColor: '#D1D5DB' }}
           required
         />
       </div>
@@ -109,7 +110,8 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
         <select
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white font-inter"
+          style={{ borderColor: '#D1D5DB' }}
           required
         >
           <option value="">Pilih Role</option>
@@ -121,7 +123,8 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
       <div className="flex space-x-4 pt-4">
         <button
           type="submit"
-          className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+          className="flex items-center space-x-2 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium font-inter"
+          style={{ backgroundColor: '#3B82F6' }}
         >
           <Save size={18} />
           <span>Save</span>
@@ -129,7 +132,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
         <button
           type="button"
           onClick={handleCancel}
-          className="flex items-center space-x-2 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+          className="flex items-center space-x-2 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium font-inter"
         >
           <X size={18} />
           <span>Cancel</span>
@@ -139,18 +142,19 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 font-inter" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Header */}
-      <div className="bg-gray-50 rounded-xl shadow-sm p-8 border border-gray-300">
+      <div className="rounded-xl shadow-sm p-8 border" style={{ backgroundColor: '#F5F5F5', borderColor: '#D1D5DB' }}>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Employee Manager</h2>
-            <p className="text-gray-600 mt-2">Manage your business employees</p>
+            <h2 className="text-2xl font-bold text-gray-800 font-inter">Employee Manager</h2>
+            <p className="text-gray-600 mt-2 font-inter">Manage your business employees</p>
           </div>
           {!isAdding && (
             <button
               onClick={() => setIsAdding(true)}
-              className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              className="flex items-center space-x-2 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium font-inter"
+              style={{ backgroundColor: '#3B82F6' }}
             >
               <Plus size={20} />
               <span>Add New Employee</span>
@@ -161,16 +165,16 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
 
       {/* Add Employee Form */}
       {isAdding && (
-        <div className="bg-gray-50 rounded-xl shadow-sm p-8 border border-gray-300">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6">Add New Employee</h3>
-          {renderForm(handleSubmit, "Save")}
+        <div className="rounded-xl shadow-sm p-8 border" style={{ backgroundColor: '#F5F5F5', borderColor: '#D1D5DB' }}>
+          <h3 className="text-lg font-semibold text-gray-800 mb-6 font-inter">Add New Employee</h3>
+          {renderForm(handleSubmit)}
         </div>
       )}
 
       {/* Employees List */}
-      <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-300">
-        <div className="p-8 border-b border-gray-300">
-          <h3 className="text-lg font-semibold text-gray-800">
+      <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#F5F5F5', borderColor: '#D1D5DB' }}>
+        <div className="p-8 border-b" style={{ borderColor: '#D1D5DB' }}>
+          <h3 className="text-lg font-semibold text-gray-800 font-inter">
             Current Employees ({businessData.employees.length})
           </h3>
         </div>
@@ -180,11 +184,12 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="text-gray-400" size={32} />
             </div>
-            <h4 className="text-lg font-medium text-gray-600 mb-2">No employees yet</h4>
-            <p className="text-gray-500 mb-6">Add your first employee to get started</p>
+            <h4 className="text-lg font-medium text-gray-600 mb-2 font-inter">No employees yet</h4>
+            <p className="text-gray-500 mb-6 font-inter">Add your first employee to get started</p>
             <button
               onClick={() => setIsAdding(true)}
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              className="text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium font-inter"
+              style={{ backgroundColor: '#3B82F6' }}
             >
               Add New Employee
             </button>
@@ -192,11 +197,11 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-8">
             {businessData.employees.map((employee) => (
-              <div key={employee.id} className="bg-white border border-gray-300 rounded-lg p-6 shadow-sm">
+              <div key={employee.id} className="bg-white border rounded-lg p-6 shadow-sm" style={{ borderColor: '#D1D5DB' }}>
                 {editingId === employee.id ? (
                   <div>
-                    <h4 className="text-lg font-medium text-gray-800 mb-4">Edit Employee</h4>
-                    {renderForm(handleUpdate, "Save")}
+                    <h4 className="text-lg font-medium text-gray-800 mb-4 font-inter">Edit Employee</h4>
+                    {renderForm(handleUpdate)}
                   </div>
                 ) : (
                   <>
@@ -205,8 +210,8 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
                         <User className="text-blue-600" size={24} />
                       </div>
                       <div>
-                        <h4 className="text-lg font-medium text-gray-800">{employee.name}</h4>
-                        <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                        <h4 className="text-lg font-medium text-gray-800 font-inter">{employee.name}</h4>
+                        <span className={`text-xs px-3 py-1 rounded-full font-medium font-inter ${
                           employee.role === 'Owner' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {employee.role || 'No Role'}
