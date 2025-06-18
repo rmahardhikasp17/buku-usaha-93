@@ -191,12 +191,13 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                       {Object.entries(record.services || {})
                         .filter(([_, quantity]) => Number(quantity) > 0)
                         .map(([serviceId, quantity]) => {
-                          const serviceTotal = calculateServiceTotal(serviceId, Number(quantity));
+                          const quantityNum = Number(quantity);
+                          const serviceTotal = calculateServiceTotal(serviceId, quantityNum);
                           return (
                             <div key={serviceId} className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                               <span className="text-sm text-gray-700">{getServiceName(serviceId)}</span>
                               <div className="flex items-center space-x-2">
-                                <span className="text-sm font-medium text-gray-800">{quantity}x</span>
+                                <span className="text-sm font-medium text-gray-800">{quantityNum}x</span>
                                 <span className="text-sm text-green-600">
                                   {formatCurrency(serviceTotal)}
                                 </span>
