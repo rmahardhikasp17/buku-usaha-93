@@ -11,32 +11,32 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 216 19% 26%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 210 20% 96%;
+    --card-foreground: 216 19% 26%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 216 19% 26%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 216 19% 26%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 20% 96%;
+    --accent-foreground: 216 19% 26%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 13% 82%;
+    --input: 220 13% 82%;
+    --ring: 217 91% 60%;
 
     --radius: 0.5rem;
 
@@ -87,25 +87,44 @@
   }
 
   body {
-    @apply bg-white text-gray-800 font-inter;
+    @apply bg-white text-gray-700 font-inter;
+    background-color: #FFFFFF;
+    color: #374151;
   }
 }
 
 /* Custom classes for the new design system */
 @layer utilities {
   .card-bg {
-    @apply bg-gray-50;
+    background-color: #F5F5F5;
   }
   
   .btn-primary {
-    @apply bg-blue-500 text-white hover:bg-blue-600 transition-colors;
+    background-color: #3B82F6;
+    color: #FFFFFF;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2563EB;
   }
   
   .text-primary {
-    @apply text-gray-800;
+    color: #374151;
   }
   
   .border-custom {
-    @apply border-gray-300;
+    border-color: #D1D5DB;
+  }
+
+  .spacing-section {
+    @apply mb-8;
+  }
+
+  .spacing-element {
+    @apply mb-6;
+  }
+
+  .spacing-small {
+    @apply mb-4;
   }
 }

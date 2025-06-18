@@ -11,7 +11,7 @@ import MonthlyReport from '../components/MonthlyReport';
 import Settings from '../components/Settings';
 import { loadData, saveData } from '../utils/dataManager';
 
-const Index: React.FC = () => {
+const Index = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [businessData, setBusinessData] = useState({
     businessName: 'Nekat Mbois',
@@ -33,7 +33,7 @@ const Index: React.FC = () => {
     saveData(businessData);
   }, [businessData]);
 
-  const updateBusinessData = (newData: any) => {
+  const updateBusinessData = (newData: Partial<typeof businessData>) => {
     setBusinessData(prev => ({ ...prev, ...newData }));
   };
 
@@ -67,7 +67,7 @@ const Index: React.FC = () => {
         setCurrentPage={setCurrentPage}
         businessName={businessData.businessName}
       />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-6 py-8">
         {renderCurrentPage()}
       </main>
     </div>

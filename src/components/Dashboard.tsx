@@ -17,7 +17,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ businessData, setCurrentPage }) => {
-  const todayTotal = getTodayTotal(businessData);
+  const todayTotal = getTodayTotal(businessData) || 0;
   const today = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
     year: 'numeric',
@@ -28,13 +28,13 @@ const Dashboard: React.FC<DashboardProps> = ({ businessData, setCurrentPage }) =
   const stats = [
     {
       title: 'Total Services',
-      value: businessData.services.length,
+      value: businessData.services?.length || 0,
       icon: Package,
       color: 'bg-blue-500'
     },
     {
       title: 'Total Employees',
-      value: businessData.employees.length,
+      value: businessData.employees?.length || 0,
       icon: Users,
       color: 'bg-green-500'
     },
@@ -46,7 +46,7 @@ const Dashboard: React.FC<DashboardProps> = ({ businessData, setCurrentPage }) =
     },
     {
       title: 'Active Records',
-      value: Object.keys(businessData.dailyRecords).length,
+      value: Object.keys(businessData.dailyRecords || {}).length,
       icon: TrendingUp,
       color: 'bg-orange-500'
     }
@@ -72,7 +72,7 @@ const Dashboard: React.FC<DashboardProps> = ({ businessData, setCurrentPage }) =
       description: 'Input today\'s business transactions',
       icon: DollarSign,
       color: 'hover:border-purple-400 hover:bg-purple-50',
-      action: () => setCurrentPage('daily-input')
+      action: () => setCurrentPage('daily-recap')
     }
   ];
 
@@ -118,7 +118,7 @@ const Dashboard: React.FC<DashboardProps> = ({ businessData, setCurrentPage }) =
               <button
                 key={index}
                 onClick={action.action}
-                className={`p-6 border-2 border-gray-300 rounded-lg text-center transition-all duration-200 ${action.color} group`}
+                className={`p-6 border-2 border-gray-300 rounded-lg text-center transition-all duration-200 ${action.color} group bg-white hover:shadow-md`}
               >
                 <Icon className="mx-auto text-gray-400 mb-3 group-hover:text-gray-600 transition-colors" size={32} />
                 <h4 className="font-medium text-gray-800 mb-2">{action.title}</h4>

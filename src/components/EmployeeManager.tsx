@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Save, X, User } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Employee {
   id: string;
@@ -40,6 +41,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
     
     setFormData({ name: '', role: '' });
     setIsAdding(false);
+    toast.success('Employee added successfully!');
   };
 
   const handleEdit = (employee: Employee) => {
@@ -67,12 +69,14 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
     updateBusinessData({ employees: updatedEmployees });
     setEditingId(null);
     setFormData({ name: '', role: '' });
+    toast.success('Employee updated successfully!');
   };
 
   const handleDelete = (employeeId: string) => {
     if (window.confirm('Are you sure you want to delete this employee?')) {
       const updatedEmployees = businessData.employees.filter(employee => employee.id !== employeeId);
       updateBusinessData({ employees: updatedEmployees });
+      toast.success('Employee deleted successfully!');
     }
   };
 
@@ -85,7 +89,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
   const renderForm = (onSubmit: (e: React.FormEvent) => void, submitText: string) => (
     <form onSubmit={onSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-3">
           Nama
         </label>
         <input
@@ -93,19 +97,19 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., John Doe"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-3">
           Role
         </label>
         <select
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
           required
         >
           <option value="">Pilih Role</option>
@@ -114,7 +118,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
         </select>
       </div>
 
-      <div className="flex space-x-3 pt-4">
+      <div className="flex space-x-4 pt-4">
         <button
           type="submit"
           className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
@@ -141,7 +145,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">Employee Manager</h2>
-            <p className="text-gray-600 mt-1">Manage your business employees</p>
+            <p className="text-gray-600 mt-2">Manage your business employees</p>
           </div>
           {!isAdding && (
             <button
