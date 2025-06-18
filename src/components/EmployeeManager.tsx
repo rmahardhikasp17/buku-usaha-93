@@ -124,7 +124,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
           className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
         >
           <Save size={18} />
-          <span>{submitText}</span>
+          <span>Save</span>
         </button>
         <button
           type="button"
@@ -163,7 +163,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
       {isAdding && (
         <div className="bg-gray-50 rounded-xl shadow-sm p-8 border border-gray-300">
           <h3 className="text-lg font-semibold text-gray-800 mb-6">Add New Employee</h3>
-          {renderForm(handleSubmit, "Save Employee")}
+          {renderForm(handleSubmit, "Save")}
         </div>
       )}
 
@@ -186,7 +186,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
               onClick={() => setIsAdding(true)}
               className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
             >
-              Add Employee
+              Add New Employee
             </button>
           </div>
         ) : (
@@ -196,7 +196,7 @@ const EmployeeManager: React.FC<EmployeeManagerProps> = ({ businessData, updateB
                 {editingId === employee.id ? (
                   <div>
                     <h4 className="text-lg font-medium text-gray-800 mb-4">Edit Employee</h4>
-                    {renderForm(handleUpdate, "Update Employee")}
+                    {renderForm(handleUpdate, "Save")}
                   </div>
                 ) : (
                   <>
