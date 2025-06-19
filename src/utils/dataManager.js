@@ -1,4 +1,3 @@
-
 const STORAGE_KEY = 'business_bookkeeping_data';
 
 export const loadData = () => {
@@ -19,13 +18,9 @@ export const saveData = (data) => {
   }
 };
 
-export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+export const formatCurrency = (value) => {
+  const numValue = Number(value) || 0;
+  return `Rp ${numValue.toLocaleString('id-ID')}`;
 };
 
 export const getTodayTotal = (businessData) => {
