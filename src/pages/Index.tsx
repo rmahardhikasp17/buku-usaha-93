@@ -14,7 +14,7 @@ import { loadData, saveData } from '../utils/dataManager';
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [businessData, setBusinessData] = useState({
-    businessName: 'Nekat Mbois',
+    businessName: 'Nekat Barbershop',
     services: [],
     employees: [],
     dailyRecords: {},
@@ -33,7 +33,7 @@ const Index = () => {
     saveData(businessData);
   }, [businessData]);
 
-  const updateBusinessData = (newData: Partial<typeof businessData>) => {
+  const updateBusinessData = (newData: any) => {
     setBusinessData(prev => ({ ...prev, ...newData }));
   };
 
@@ -61,13 +61,13 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-barbershop-cream">
       <Navigation 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage}
         businessName={businessData.businessName}
       />
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 py-6">
         {renderCurrentPage()}
       </main>
     </div>

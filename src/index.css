@@ -3,10 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Inter font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Import Poppins font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* Barbershop Design System */
 
 @layer base {
   :root {
@@ -87,33 +87,43 @@
   }
 
   body {
-    @apply bg-white text-gray-700 font-inter;
-    background-color: #FFFFFF;
-    color: #374151;
+    @apply bg-barbershop-cream text-gray-700 font-poppins;
+    background: linear-gradient(135deg, #FEF7ED 0%, #FFFFFF 100%);
   }
 }
 
-/* Custom classes for the new design system */
+/* Barbershop specific utilities */
 @layer utilities {
-  .card-bg {
-    background-color: #F5F5F5;
+  .barbershop-card {
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm;
   }
   
-  .btn-primary {
-    background-color: #3B82F6;
-    color: #FFFFFF;
+  .barbershop-btn-primary {
+    @apply bg-barbershop-blue text-white hover:bg-blue-700 transition-all duration-200 hover:scale-105;
   }
   
-  .btn-primary:hover {
-    background-color: #2563EB;
+  .barbershop-btn-secondary {
+    @apply bg-barbershop-red text-white hover:bg-red-700 transition-all duration-200 hover:scale-105;
   }
-  
-  .text-primary {
-    color: #374151;
+
+  .barbershop-input {
+    @apply border-gray-300 rounded-lg focus:ring-2 focus:ring-barbershop-blue focus:border-transparent bg-white;
   }
-  
-  .border-custom {
-    border-color: #D1D5DB;
+
+  .barbershop-gradient {
+    background: linear-gradient(135deg, #1D4ED8 0%, #DC2626 50%, #1D4ED8 100%);
+  }
+
+  .barber-pole {
+    background: repeating-linear-gradient(
+      45deg,
+      #DC2626,
+      #DC2626 10px,
+      #FFFFFF 10px,
+      #FFFFFF 20px,
+      #1D4ED8 20px,
+      #1D4ED8 30px
+    );
   }
 
   .spacing-section {
@@ -126,5 +136,9 @@
 
   .spacing-small {
     @apply mb-4;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-200 hover:scale-105 hover:shadow-lg;
   }
 }

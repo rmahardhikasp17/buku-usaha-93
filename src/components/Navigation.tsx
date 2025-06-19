@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Home, Package, Users, PlusCircle, BarChart3, Settings, Menu, X, DollarSign, FileText, Calendar } from 'lucide-react';
+import { Home, Package, Users, PlusCircle, BarChart3, Settings, Menu, X, DollarSign, FileText, Scissors } from 'lucide-react';
 
 interface NavigationProps {
   currentPage: string;
@@ -13,7 +13,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, setCurrentPage, bu
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'services', label: 'Services', icon: Package },
+    { id: 'services', label: 'Services', icon: Scissors },
     { id: 'employees', label: 'Employees', icon: Users },
     { id: 'daily-input', label: 'Daily Input', icon: PlusCircle },
     { id: 'transactions', label: 'Pemasukan & Pengeluaran', icon: DollarSign },
@@ -28,15 +28,18 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, setCurrentPage, bu
   };
 
   return (
-    <nav className="bg-white shadow-lg border-b border-gray-300">
+    <nav className="bg-white shadow-lg border-b-2 border-barbershop-red">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          {/* Logo/Business Name */}
+          {/* Logo/Business Name with Barbershop Theme */}
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">N</span>
+            <div className="w-10 h-10 barbershop-gradient rounded-lg flex items-center justify-center shadow-sm">
+              <Scissors className="text-white" size={20} />
             </div>
-            <h1 className="text-xl font-bold text-gray-800">{businessName}</h1>
+            <div>
+              <h1 className="text-xl font-bold text-gray-800 font-poppins">✂️ Nekat Barbershop</h1>
+              <div className="w-16 h-1 barber-pole rounded-full"></div>
+            </div>
           </div>
 
           {/* Desktop Menu */}
@@ -47,10 +50,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, setCurrentPage, bu
                 <button
                   key={item.id}
                   onClick={() => handleMenuClick(item.id)}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium font-poppins hover-lift ${
                     currentPage === item.id
-                      ? 'bg-blue-100 text-blue-600'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
+                      ? 'bg-barbershop-blue text-white shadow-md'
+                      : 'text-gray-700 hover:text-barbershop-blue hover:bg-blue-50'
                   }`}
                 >
                   <Icon size={16} />
@@ -63,7 +66,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, setCurrentPage, bu
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+            className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -71,7 +74,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, setCurrentPage, bu
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-300">
+          <div className="md:hidden py-4 border-t border-gray-200 animate-fade-in">
             <div className="space-y-2">
               {menuItems.map((item) => {
                 const Icon = item.icon;
@@ -79,10 +82,10 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, setCurrentPage, bu
                   <button
                     key={item.id}
                     onClick={() => handleMenuClick(item.id)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors font-poppins ${
                       currentPage === item.id
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
+                        ? 'bg-barbershop-blue text-white'
+                        : 'text-gray-700 hover:text-barbershop-blue hover:bg-blue-50'
                     }`}
                   >
                     <Icon size={20} />
