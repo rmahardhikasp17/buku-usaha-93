@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import Dashboard from '../components/Dashboard';
@@ -6,6 +7,7 @@ import EmployeeManager from '../components/EmployeeManager';
 import DailyInput from '../components/DailyInput';
 import TransactionForm from '../components/TransactionForm';
 import DailyRecap from '../components/DailyRecap';
+import MonthlyReport from '../components/MonthlyReport';
 import Settings from '../components/Settings';
 import { loadData, saveData } from '../utils/dataManager';
 
@@ -49,6 +51,8 @@ const Index = () => {
         return <TransactionForm businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'daily-recap':
         return <DailyRecap businessData={businessData} />;
+      case 'monthly-report':
+        return <MonthlyReport businessData={businessData} />;
       case 'settings':
         return <Settings businessData={businessData} updateBusinessData={updateBusinessData} />;
       default:
