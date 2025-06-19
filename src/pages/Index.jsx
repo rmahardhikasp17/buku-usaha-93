@@ -5,7 +5,6 @@ import ServicesManager from '../components/ServicesManager';
 import EmployeeManager from '../components/EmployeeManager';
 import DailyInput from '../components/DailyInput';
 import TransactionForm from '../components/TransactionForm';
-import SisaPendapatan from '../components/SisaPendapatan';
 import DailyRecap from '../components/DailyRecap';
 import Settings from '../components/Settings';
 import { loadData, saveData } from '../utils/dataManager';
@@ -48,8 +47,6 @@ const Index = () => {
         return <DailyInput businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'transactions':
         return <TransactionForm businessData={businessData} updateBusinessData={updateBusinessData} />;
-      case 'sisa-pendapatan':
-        return <SisaPendapatan businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'daily-recap':
         return <DailyRecap businessData={businessData} />;
       case 'settings':
