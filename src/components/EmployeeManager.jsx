@@ -33,13 +33,13 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.role || !formData.totalIncome) return;
+    if (!formData.name.trim() || !formData.role) return;
 
     const newEmployee = {
       id: Date.now().toString(),
       name: formData.name.trim(),
       role: formData.role,
-      totalIncome: parseFloat(formData.totalIncome),
+      totalIncome: parseFloat(formData.totalIncome) || 0,
       netIncome: formData.netIncome
     };
 
@@ -62,7 +62,7 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
 
   const handleUpdate = (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.role || !formData.totalIncome) return;
+    if (!formData.name.trim() || !formData.role) return;
 
     const updatedEmployees = businessData.employees.map(employee =>
       employee.id === editingId
@@ -70,7 +70,7 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
             ...employee, 
             name: formData.name.trim(),
             role: formData.role,
-            totalIncome: parseFloat(formData.totalIncome),
+            totalIncome: parseFloat(formData.totalIncome) || 0,
             netIncome: formData.netIncome
           }
         : employee
@@ -95,9 +95,9 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
   };
 
   const renderForm = (onSubmit, submitText) => (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-3 font-inter">
           Nama
         </label>
         <input
@@ -105,19 +105,21 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., John Doe"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white font-inter"
+          style={{ borderColor: '#D1D5DB' }}
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-3 font-inter">
           Role
         </label>
         <select
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white font-inter"
+          style={{ borderColor: '#D1D5DB' }}
           required
         >
           <option value="">Pilih Role</option>
@@ -126,49 +128,19 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
         </select>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Total Pendapatan
-        </label>
-        <input
-          type="number"
-          value={formData.totalIncome}
-          onChange={(e) => setFormData({ ...formData, totalIncome: e.target.value })}
-          placeholder="e.g., 1000000"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          required
-          min="0"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Penghasilan Bersih
-        </label>
-        <input
-          type="text"
-          value={formatCurrency(formData.netIncome)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-          readOnly
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          {formData.role === 'Karyawan' && 'Dihitung otomatis: 50% dari Total Pendapatan'}
-          {formData.role === 'Owner' && 'Dihitung otomatis: Total Pendapatan - Rp 40.000'}
-        </p>
-      </div>
-
-      <div className="flex space-x-3">
+      <div className="flex space-x-4 pt-4">
         <button
           type="submit"
-          className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          className="flex items-center space-x-2 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium font-inter"
+          style={{ backgroundColor: '#3B82F6' }}
         >
           <Save size={18} />
-          <span>{submitText}</span>
+          <span>Save</span>
         </button>
         <button
           type="button"
           onClick={handleCancel}
-          className="flex items-center space-x-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+          className="flex items-center space-x-2 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium font-inter"
         >
           <X size={18} />
           <span>Cancel</span>
@@ -178,21 +150,22 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 font-inter" style={{ backgroundColor: '#FFFFFF' }}>
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+      <div className="rounded-xl shadow-sm p-8 border" style={{ backgroundColor: '#F5F5F5', borderColor: '#D1D5DB' }}>
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Employee Manager</h2>
-            <p className="text-gray-600 mt-1">Manage your business employees</p>
+            <h2 className="text-2xl font-bold text-gray-800 font-inter">Employee Manager</h2>
+            <p className="text-gray-600 mt-2 font-inter">Manage your business employees</p>
           </div>
           {!isAdding && (
             <button
               onClick={() => setIsAdding(true)}
-              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              className="flex items-center space-x-2 text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium font-inter"
+              style={{ backgroundColor: '#3B82F6' }}
             >
               <Plus size={20} />
-              <span>Add Employee</span>
+              <span>Add New Employee</span>
             </button>
           )}
         </div>
@@ -200,67 +173,57 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
 
       {/* Add Employee Form */}
       {isAdding && (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Employee</h3>
+        <div className="rounded-xl shadow-sm p-8 border" style={{ backgroundColor: '#F5F5F5', borderColor: '#D1D5DB' }}>
+          <h3 className="text-lg font-semibold text-gray-800 mb-6 font-inter">Add New Employee</h3>
           {renderForm(handleSubmit, "Save Employee")}
         </div>
       )}
 
       {/* Employees List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">
+      <div className="rounded-xl shadow-sm border" style={{ backgroundColor: '#F5F5F5', borderColor: '#D1D5DB' }}>
+        <div className="p-8 border-b" style={{ borderColor: '#D1D5DB' }}>
+          <h3 className="text-lg font-semibold text-gray-800 font-inter">
             Current Employees ({businessData.employees.length})
           </h3>
         </div>
         
         {businessData.employees.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="text-gray-400" size={32} />
             </div>
-            <h4 className="text-lg font-medium text-gray-600 mb-2">No employees yet</h4>
-            <p className="text-gray-500 mb-4">Add your first employee to get started</p>
+            <h4 className="text-lg font-medium text-gray-600 mb-2 font-inter">No employees yet</h4>
+            <p className="text-gray-500 mb-6 font-inter">Add your first employee to get started</p>
             <button
               onClick={() => setIsAdding(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              className="text-white px-6 py-3 rounded-lg hover:opacity-90 transition-colors font-medium font-inter"
+              style={{ backgroundColor: '#3B82F6' }}
             >
-              Add Employee
+              Add New Employee
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-8">
             {businessData.employees.map((employee) => (
-              <div key={employee.id} className="border border-gray-200 rounded-lg p-4">
+              <div key={employee.id} className="bg-white border rounded-lg p-6 shadow-sm" style={{ borderColor: '#D1D5DB' }}>
                 {editingId === employee.id ? (
                   <div>
-                    <h4 className="text-lg font-medium text-gray-800 mb-3">Edit Employee</h4>
+                    <h4 className="text-lg font-medium text-gray-800 mb-4 font-inter">Edit Employee</h4>
                     {renderForm(handleUpdate, "Update Employee")}
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <User className="text-green-600" size={20} />
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="text-blue-600" size={24} />
                       </div>
                       <div>
-                        <h4 className="text-lg font-medium text-gray-800">{employee.name}</h4>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
+                        <h4 className="text-lg font-medium text-gray-800 font-inter">{employee.name}</h4>
+                        <span className={`text-xs px-3 py-1 rounded-full font-medium font-inter ${
                           employee.role === 'Owner' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {employee.role || 'No Role'}
                         </span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 mb-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Total Pendapatan:</span>
-                        <span className="font-medium">{formatCurrency(employee.totalIncome || 0)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Penghasilan Bersih:</span>
-                        <span className="font-medium text-green-600">{formatCurrency(employee.netIncome || 0)}</span>
                       </div>
                     </div>
 
