@@ -9,7 +9,8 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedEmployeeData, setSelectedEmployeeData] = useState(null);
   const [serviceQuantities, setServiceQuantities] = useState({});
-  const [serviceBonuses, setServiceBonuses] = useState({}); // Changed to track bonuses per service
+  const [bonusServices, setBonusServices] = useState({}); // Track which bonus services are enabled
+  const [bonusQuantities, setBonusQuantities] = useState({}); // Track bonus quantities
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [bonusTotal, setBonusTotal] = useState(0);
   const [potongan, setPotongan] = useState(0);
@@ -38,21 +39,22 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
     setTotalRevenue(total);
   }, [serviceQuantities, mainServices]);
 
-  // Calculate bonus total from all selected bonus services
+  // Calculate bonus total from enabled bonus services and their quantities
   useEffect(() => {
-    const total = Object.values(serviceBonuses).reduce((sum, bonuses) => {
-      return sum + Object.entries(bonuses || {}).reduce((bonusSum, [bonusId, isSelected]) => {
-        if (isSelected) {
+    const total = Object.entries(bonusServices).reduce((sum, [serviceId, bonusData]) => {
+      return sum + Object.entries(bonusData || {}).reduce((bonusSum, [bonusId, isEnabled]) => {
+        if (isEnabled) {
           const bonusService = bonusServicesList.find(service => service.id === bonusId);
-          return bonusSum + (bonusService ? bonusService.price : 0);
+          const bonusQty = bonusQuantities[serviceId]?.[bonusId] || 0;
+          return bonusSum + (bonusService ? bonusService.price * bonusQty : 0);
         }
         return bonusSum;
       }, 0);
     }, 0);
     setBonusTotal(total);
-  }, [serviceBonuses, bonusServicesList]);
+  }, [bonusServices, bonusQuantities, bonusServicesList]);
 
-  // Calculate potongan and gaji diterima when total revenue, bonus, or employee changes
+  // Calculate potongan and gaji diterima
   useEffect(() => {
     if (selectedEmployeeData && (totalRevenue > 0 || bonusTotal > 0)) {
       let calculatedPotongan = 0;
@@ -81,12 +83,36 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
     }));
   };
 
-  const handleServiceBonusChange = (serviceId, bonusId, checked) => {
-    setServiceBonuses(prev => ({
+  const handleBonusServiceToggle = (serviceId, bonusId, enabled) => {
+    setBonusServices(prev => ({
       ...prev,
       [serviceId]: {
         ...prev[serviceId],
-        [bonusId]: checked
+        [bonusId]: enabled
+      }
+    }));
+
+    // Reset bonus quantity if disabled
+    if (!enabled) {
+      setBonusQuantities(prev => ({
+        ...prev,
+        [serviceId]: {
+          ...prev[serviceId],
+          [bonusId]: 0
+        }
+      }));
+    }
+  };
+
+  const handleBonusQuantityChange = (serviceId, bonusId, quantity) => {
+    const maxQty = serviceQuantities[serviceId] || 0;
+    const validQty = Math.min(parseInt(quantity) || 0, maxQty);
+    
+    setBonusQuantities(prev => ({
+      ...prev,
+      [serviceId]: {
+        ...prev[serviceId],
+        [bonusId]: validQty
       }
     }));
   };
@@ -99,24 +125,11 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
     }
 
     const hasQuantities = Object.values(serviceQuantities).some(qty => qty > 0);
-    const hasBonusServices = Object.values(serviceBonuses).some(bonuses => 
-      Object.values(bonuses || {}).some(selected => selected)
-    );
     
-    if (!hasQuantities && !hasBonusServices) {
-      alert('Please enter at least one service quantity or select bonus services');
+    if (!hasQuantities) {
+      alert('Please enter at least one service quantity');
       return;
     }
-
-    // Flatten bonus services for storage
-    const flatBonusServices = {};
-    Object.values(serviceBonuses).forEach(bonuses => {
-      Object.entries(bonuses || {}).forEach(([bonusId, isSelected]) => {
-        if (isSelected) {
-          flatBonusServices[bonusId] = true;
-        }
-      });
-    });
 
     const recordKey = `${selectedDate}_${selectedEmployee}`;
     const newRecord = {
@@ -125,8 +138,8 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
       employeeName: selectedEmployeeData.name,
       employeeRole: selectedEmployeeData.role,
       services: serviceQuantities,
-      bonusServices: flatBonusServices,
-      serviceBonuses: serviceBonuses, // Keep the structured format too
+      bonusServices: bonusServices,
+      bonusQuantities: bonusQuantities,
       totalRevenue: totalRevenue,
       bonusTotal: bonusTotal,
       potongan: potongan,
@@ -142,7 +155,8 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
     
     // Reset form
     setServiceQuantities({});
-    setServiceBonuses({});
+    setBonusServices({});
+    setBonusQuantities({});
     setSelectedEmployee('');
     alert('Daily record saved successfully!');
   };
@@ -235,7 +249,7 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
           </div>
         )}
 
-        {/* Main Service Selection with Inline Bonus Services */}
+        {/* Main Service Selection with Separate Bonus Quantities */}
         {mainServices.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Main Services</h3>
@@ -249,7 +263,7 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
                       <p className="text-sm text-gray-600">{formatCurrency(service.price)} per service</p>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <label className="text-sm text-gray-600">Quantity:</label>
+                      <label className="text-sm text-gray-600">Qty:</label>
                       <input
                         type="number"
                         min="0"
@@ -264,26 +278,58 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
                     </div>
                   </div>
 
-                  {/* Inline Bonus Services for this main service */}
-                  {bonusServicesList.length > 0 && (
+                  {/* Bonus Services with Separate Quantities */}
+                  {bonusServicesList.length > 0 && serviceQuantities[service.id] > 0 && (
                     <div className="border-t border-gray-100 pt-3">
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Available Bonus Services:</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {bonusServicesList.map((bonusService) => (
-                          <div key={bonusService.id} className="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
-                            <Checkbox
-                              id={`bonus-${service.id}-${bonusService.id}`}
-                              checked={serviceBonuses[service.id]?.[bonusService.id] || false}
-                              onCheckedChange={(checked) => handleServiceBonusChange(service.id, bonusService.id, checked)}
-                            />
-                            <label 
-                              htmlFor={`bonus-${service.id}-${bonusService.id}`} 
-                              className="text-sm text-gray-700 cursor-pointer"
-                            >
-                              {bonusService.name} ({formatCurrency(bonusService.price)})
-                            </label>
-                          </div>
-                        ))}
+                      <h5 className="text-sm font-medium text-gray-700 mb-3">Bonus Services:</h5>
+                      <div className="space-y-3">
+                        {bonusServicesList.map((bonusService) => {
+                          const isEnabled = bonusServices[service.id]?.[bonusService.id] || false;
+                          const bonusQty = bonusQuantities[service.id]?.[bonusService.id] || 0;
+                          const maxQty = serviceQuantities[service.id] || 0;
+                          
+                          return (
+                            <div key={bonusService.id} className="bg-yellow-50 rounded-lg p-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    id={`bonus-${service.id}-${bonusService.id}`}
+                                    checked={isEnabled}
+                                    onCheckedChange={(checked) => handleBonusServiceToggle(service.id, bonusService.id, checked)}
+                                  />
+                                  <label 
+                                    htmlFor={`bonus-${service.id}-${bonusService.id}`} 
+                                    className="text-sm font-medium text-gray-700 cursor-pointer"
+                                  >
+                                    {bonusService.name}
+                                  </label>
+                                  <span className="text-sm text-gray-600">
+                                    ({formatCurrency(bonusService.price)})
+                                  </span>
+                                </div>
+                                
+                                {isEnabled && (
+                                  <div className="flex items-center space-x-2">
+                                    <label className="text-xs text-gray-600">Bonus Qty:</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={maxQty}
+                                      value={bonusQty}
+                                      onChange={(e) => handleBonusQuantityChange(service.id, bonusService.id, e.target.value)}
+                                      className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                      placeholder="0"
+                                    />
+                                    <span className="text-xs text-gray-500">/ {maxQty}</span>
+                                    <span className="text-sm font-medium text-yellow-600 min-w-16 text-right">
+                                      {formatCurrency(bonusService.price * bonusQty)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -299,11 +345,13 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
             <div className="bg-blue-50 p-4 rounded-lg">
               <label className="block text-sm font-medium text-gray-700 mb-2">Total Revenue</label>
               <div className="text-xl font-bold text-blue-600">{formatCurrency(totalRevenue)}</div>
+              <p className="text-xs text-gray-500 mt-1">Main services only</p>
             </div>
             
             <div className="bg-yellow-50 p-4 rounded-lg">
               <label className="block text-sm font-medium text-gray-700 mb-2">Bonus Total</label>
               <div className="text-xl font-bold text-yellow-600">{formatCurrency(bonusTotal)}</div>
+              <p className="text-xs text-gray-500 mt-1">Added to salary</p>
             </div>
             
             <div className="bg-red-50 p-4 rounded-lg">

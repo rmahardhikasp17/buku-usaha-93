@@ -27,14 +27,21 @@ const DailyRecap = ({ businessData }) => {
     return servicePrice * serviceQuantity;
   };
 
-  const calculateBonusTotal = (bonusServices) => {
-    if (!bonusServices) return 0;
-    return Object.entries(bonusServices)
-      .filter(([_, selected]) => selected)
-      .reduce((sum, [serviceId, _]) => {
-        const service = businessData.services?.find(s => s.id === serviceId);
-        return sum + (Number(service?.price) || 0);
-      }, 0);
+  const calculateBonusTotal = (bonusServices, bonusQuantities) => {
+    if (!bonusServices || !bonusQuantities) return 0;
+    
+    let total = 0;
+    Object.entries(bonusServices).forEach(([serviceId, bonusData]) => {
+      Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]) => {
+        if (isEnabled) {
+          const bonusService = businessData.services?.find(s => s.id === bonusId);
+          const bonusQty = bonusQuantities[serviceId]?.[bonusId] || 0;
+          total += (bonusService?.price || 0) * bonusQty;
+        }
+      });
+    });
+    
+    return total;
   };
 
   const calculateOwnerSalary = (dailyRecords) => {
@@ -51,7 +58,7 @@ const DailyRecap = ({ businessData }) => {
           return sum + calculateServiceTotal(serviceId, quantity);
         }, 0);
 
-      const bonusTotal = calculateBonusTotal(record.bonusServices);
+      const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
 
       if (employee?.role === 'Owner') {
         ownerRevenue += recordTotal;
@@ -62,12 +69,6 @@ const DailyRecap = ({ businessData }) => {
       }
     });
 
-    // Owner salary calculation:
-    // + Owner's service revenue
-    // + Owner's bonus services
-    // + 50% of all employee revenue
-    // - Rp 40,000 (daily savings)
-    // - Rp 10,000 × number of employees present
     const ownerSalary = ownerRevenue + ownerBonus + (employeeRevenue * 0.5) - 40000 - (10000 * employeeCount);
     
     return {
@@ -219,7 +220,7 @@ const DailyRecap = ({ businessData }) => {
                   return sum + calculateServiceTotal(serviceId, quantity);
                 }, 0);
 
-              const bonusTotal = calculateBonusTotal(record.bonusServices);
+              const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
               const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
 
               return (
@@ -275,24 +276,35 @@ const DailyRecap = ({ businessData }) => {
                       </div>
                     </div>
 
-                    {/* Bonus Services */}
-                    {record.bonusServices && Object.values(record.bonusServices).some(selected => selected) && (
+                    {/* Bonus Services with Quantities */}
+                    {record.bonusServices && Object.keys(record.bonusServices).length > 0 && (
                       <div>
                         <h5 className="text-sm font-medium text-gray-700 mb-2">Bonus Services:</h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {Object.entries(record.bonusServices || {})
-                            .filter(([_, selected]) => selected)
-                            .map(([serviceId, _]) => {
-                              const service = businessData.services?.find(s => s.id === serviceId);
-                              return (
-                                <div key={serviceId} className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                                  <span className="text-sm text-gray-700">{getServiceName(serviceId)}</span>
-                                  <span className="text-sm text-yellow-600 font-medium">
-                                    {formatCurrency(service?.price || 0)}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                        <div className="space-y-2">
+                          {Object.entries(record.bonusServices || {}).map(([serviceId, bonusData]) => (
+                            Object.entries(bonusData || {})
+                              .filter(([_, isEnabled]) => isEnabled)
+                              .map(([bonusId, _]) => {
+                                const bonusService = businessData.services?.find(s => s.id === bonusId);
+                                const bonusQty = record.bonusQuantities?.[serviceId]?.[bonusId] || 0;
+                                const bonusValue = (bonusService?.price || 0) * bonusQty;
+                                
+                                return (
+                                  <div key={`${serviceId}-${bonusId}`} className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm text-gray-700">{getServiceName(bonusId)}</span>
+                                      <span className="text-xs text-gray-500">({getServiceName(serviceId)})</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm font-medium text-gray-800">{bonusQty}x</span>
+                                      <span className="text-sm text-yellow-600 font-medium">
+                                        {formatCurrency(bonusValue)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                          ))}
                         </div>
                       </div>
                     )}
