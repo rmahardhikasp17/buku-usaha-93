@@ -27,6 +27,42 @@ const DailyRecap = ({ businessData }) => {
     return servicePrice * serviceQuantity;
   };
 
+  const calculateOwnerSalary = (dailyRecords) => {
+    let ownerRevenue = 0;
+    let employeeRevenue = 0;
+    let employeeCount = 0;
+
+    dailyRecords.forEach(record => {
+      const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+      const recordTotal = Object.entries(record.services || {})
+        .filter(([_, quantity]) => Number(quantity) > 0)
+        .reduce((sum, [serviceId, quantity]) => {
+          return sum + calculateServiceTotal(serviceId, quantity);
+        }, 0);
+
+      if (employee?.role === 'Owner') {
+        ownerRevenue += recordTotal;
+      } else if (employee?.role === 'Karyawan') {
+        employeeRevenue += recordTotal;
+        employeeCount++;
+      }
+    });
+
+    // Owner salary calculation:
+    // + Owner's service revenue
+    // + 50% of all employee revenue
+    // - Rp 40,000 (daily savings)
+    // - Rp 10,000 × number of employees present
+    const ownerSalary = ownerRevenue + (employeeRevenue * 0.5) - 40000 - (10000 * employeeCount);
+    
+    return {
+      ownerSalary,
+      ownerRevenue,
+      employeeRevenue,
+      employeeCount
+    };
+  };
+
   const dailyRecords = getDailyRecords(selectedDate);
   
   // Calculate grand total properly by summing all service totals
@@ -38,6 +74,8 @@ const DailyRecap = ({ businessData }) => {
       }, 0);
     return sum + recordTotal;
   }, 0);
+
+  const ownerData = calculateOwnerSalary(dailyRecords);
 
   const handleExport = () => {
     exportDailyRecapToExcel(dailyRecords, businessData, selectedDate);
@@ -82,7 +120,7 @@ const DailyRecap = ({ businessData }) => {
 
       {/* Summary Cards */}
       {dailyRecords.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -114,6 +152,19 @@ const DailyRecap = ({ businessData }) => {
                 <p className="text-sm text-gray-600">Average per Employee</p>
                 <p className="text-2xl font-bold text-gray-800">
                   {formatCurrency(dailyRecords.length > 0 ? grandTotal / dailyRecords.length : 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="text-orange-600" size={24} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Owner Salary</p>
+                <p className={`text-2xl font-bold ${ownerData.ownerSalary >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(ownerData.ownerSalary)}
                 </p>
               </div>
             </div>
@@ -152,6 +203,8 @@ const DailyRecap = ({ businessData }) => {
                   return sum + calculateServiceTotal(serviceId, quantity);
                 }, 0);
 
+              const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+
               return (
                 <div key={index} className="p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -159,12 +212,21 @@ const DailyRecap = ({ businessData }) => {
                       <h4 className="text-lg font-medium text-gray-800">
                         {getEmployeeName(record.employeeId)}
                       </h4>
-                      <p className="text-sm text-gray-600">Employee Revenue</p>
+                      <p className="text-sm text-gray-600">
+                        {employee?.role === 'Owner' ? 'Owner Revenue' : 'Employee Revenue'}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-green-600">
                         {formatCurrency(employeeTotal)}
                       </p>
+                      {employee?.role === 'Owner' && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Salary: <span className={`font-medium ${ownerData.ownerSalary >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(ownerData.ownerSalary)}
+                          </span>
+                        </p>
+                      )}
                     </div>
                   </div>
                   
@@ -199,6 +261,34 @@ const DailyRecap = ({ businessData }) => {
                 <span className="text-lg font-semibold text-gray-800">Grand Total:</span>
                 <span className="text-3xl font-bold text-green-600">{formatCurrency(grandTotal)}</span>
               </div>
+              {ownerData.employeeCount > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Owner Service Revenue:</span>
+                      <span>{formatCurrency(ownerData.ownerRevenue)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>50% Employee Revenue:</span>
+                      <span>{formatCurrency(ownerData.employeeRevenue * 0.5)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Daily Savings:</span>
+                      <span className="text-red-600">-{formatCurrency(40000)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Employee Deduction ({ownerData.employeeCount}×10k):</span>
+                      <span className="text-red-600">-{formatCurrency(10000 * ownerData.employeeCount)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold pt-2 border-t border-gray-300">
+                      <span>Owner Final Salary:</span>
+                      <span className={ownerData.ownerSalary >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(ownerData.ownerSalary)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

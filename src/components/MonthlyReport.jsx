@@ -8,6 +8,58 @@ const MonthlyReport = ({ businessData }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
   const [reportData, setReportData] = useState(null);
 
+  const calculateOwnerMonthlySalary = (monthlyRecords) => {
+    let totalOwnerSalary = 0;
+    let totalOwnerRevenue = 0;
+    let totalEmployeeRevenue = 0;
+    
+    // Group records by date to calculate daily owner salary
+    const recordsByDate = {};
+    monthlyRecords.forEach(record => {
+      if (!recordsByDate[record.date]) {
+        recordsByDate[record.date] = [];
+      }
+      recordsByDate[record.date].push(record);
+    });
+
+    Object.entries(recordsByDate).forEach(([date, dailyRecords]) => {
+      let dailyOwnerRevenue = 0;
+      let dailyEmployeeRevenue = 0;
+      let dailyEmployeeCount = 0;
+
+      dailyRecords.forEach(record => {
+        const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+        const recordTotal = Object.entries(record.services || {})
+          .filter(([_, quantity]) => Number(quantity) > 0)
+          .reduce((sum, [serviceId, quantity]) => {
+            const service = businessData.services?.find(s => s.id === serviceId);
+            const servicePrice = Number(service?.price) || 0;
+            const serviceQuantity = Number(quantity) || 0;
+            return sum + (servicePrice * serviceQuantity);
+          }, 0);
+
+        if (employee?.role === 'Owner') {
+          dailyOwnerRevenue += recordTotal;
+          totalOwnerRevenue += recordTotal;
+        } else if (employee?.role === 'Karyawan') {
+          dailyEmployeeRevenue += recordTotal;
+          totalEmployeeRevenue += recordTotal;
+          dailyEmployeeCount++;
+        }
+      });
+
+      // Calculate daily owner salary
+      const dailyOwnerSalary = dailyOwnerRevenue + (dailyEmployeeRevenue * 0.5) - 40000 - (10000 * dailyEmployeeCount);
+      totalOwnerSalary += dailyOwnerSalary;
+    });
+
+    return {
+      totalOwnerSalary,
+      totalOwnerRevenue,
+      totalEmployeeRevenue
+    };
+  };
+
   const calculateMonthlyReport = () => {
     const [year, month] = selectedMonth.split('-');
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -42,7 +94,7 @@ const MonthlyReport = ({ businessData }) => {
       .filter((t) => t.type === 'Pengeluaran')
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-    // Calculate employee salaries
+    // Calculate employee salaries (50% of their revenue)
     const totalGajiKaryawan = monthlyRecords.reduce((sum, record) => {
       const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
       if (employee?.role === 'Karyawan') {
@@ -61,41 +113,31 @@ const MonthlyReport = ({ businessData }) => {
       return sum;
     }, 0);
 
-    // Calculate owner savings
-    const totalTabunganOwner = monthlyRecords.reduce((sum, record) => {
-      const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
-      if (employee?.role === 'Owner') {
-        const recordTotal = Object.entries(record.services || {})
-          .filter(([_, quantity]) => Number(quantity) > 0)
-          .reduce((recordSum, [serviceId, quantity]) => {
-            const service = businessData.services?.find(s => s.id === serviceId);
-            const servicePrice = Number(service?.price) || 0;
-            const serviceQuantity = Number(quantity) || 0;
-            return recordSum + (servicePrice * serviceQuantity);
-          }, 0);
-        
-        const potongan = recordTotal * 0.2; // 20% savings for owner
-        return sum + potongan;
-      }
-      return sum;
-    }, 0);
+    // Calculate owner salary using new logic
+    const ownerSalaryData = calculateOwnerMonthlySalary(monthlyRecords);
+    const totalGajiOwner = ownerSalaryData.totalOwnerSalary;
 
-    const labaBersih = totalPendapatan - totalPengeluaran - totalGajiKaryawan - totalTabunganOwner;
-
-    // Calculate active days and employees
+    // Calculate owner savings (fixed daily amount × active days)
     const activeDays = new Set(monthlyRecords.map((record) => record.date)).size;
+    const totalTabunganOwner = activeDays * 40000; // Rp 40,000 per active day
+
+    const labaBersih = totalPendapatan - totalPengeluaran - totalGajiKaryawan - totalGajiOwner - totalTabunganOwner;
+
+    // Calculate active employees
     const activeEmployees = new Set(monthlyRecords.map((record) => record.employeeId)).size;
 
     setReportData({
       totalPendapatan,
       totalPengeluaran,
       totalGajiKaryawan,
+      totalGajiOwner,
       totalTabunganOwner,
       labaBersih,
       activeDays,
       activeEmployees,
       monthlyRecords,
-      monthlyTransactions
+      monthlyTransactions,
+      ownerSalaryData
     });
   };
 
@@ -114,6 +156,7 @@ const MonthlyReport = ({ businessData }) => {
         ['Total Pendapatan', reportData.totalPendapatan],
         ['Total Pengeluaran', reportData.totalPengeluaran],
         ['Total Gaji Karyawan', reportData.totalGajiKaryawan],
+        ['Total Gaji Owner', reportData.totalGajiOwner],
         ['Total Tabungan Owner', reportData.totalTabunganOwner],
         ['Laba Bersih', reportData.labaBersih],
         [''],
@@ -154,8 +197,8 @@ const MonthlyReport = ({ businessData }) => {
       color: 'bg-blue-500'
     },
     {
-      title: 'Total Tabungan Owner',
-      value: reportData ? formatCurrency(reportData.totalTabunganOwner) : formatCurrency(0),
+      title: 'Total Gaji Owner',
+      value: reportData ? formatCurrency(reportData.totalGajiOwner) : formatCurrency(0),
       icon: PiggyBank,
       color: 'bg-purple-500'
     }
@@ -226,14 +269,22 @@ const MonthlyReport = ({ businessData }) => {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Laba Bersih</h3>
               <p className={`text-3xl font-bold ${reportData.labaBersih >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {formatCurrency(reportData.labaBersih)}
               </p>
               <p className="text-sm text-gray-600 mt-2">
-                Pendapatan - Pengeluaran - Gaji - Tabungan
+                Setelah semua pengeluaran
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Tabungan Owner</h3>
+              <p className="text-3xl font-bold text-blue-600">{formatCurrency(reportData.totalTabunganOwner)}</p>
+              <p className="text-sm text-gray-600 mt-2">
+                Rp 40k × {reportData.activeDays} hari
               </p>
             </div>
 
@@ -251,6 +302,45 @@ const MonthlyReport = ({ businessData }) => {
               <p className="text-sm text-gray-600 mt-2">
                 Karyawan yang bekerja bulan ini
               </p>
+            </div>
+          </div>
+
+          {/* Owner Salary Breakdown */}
+          <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Rincian Gaji Owner</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Revenue dari layanan Owner:</span>
+                <span className="font-medium text-green-600">
+                  {formatCurrency(reportData.ownerSalaryData?.totalOwnerRevenue || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">50% dari revenue karyawan:</span>
+                <span className="font-medium text-green-600">
+                  {formatCurrency((reportData.ownerSalaryData?.totalEmployeeRevenue || 0) * 0.5)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Tabungan harian ({reportData.activeDays} hari):</span>
+                <span className="font-medium text-red-600">
+                  -{formatCurrency(reportData.totalTabunganOwner)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Potongan karyawan (10k × jumlah kehadiran):</span>
+                <span className="font-medium text-red-600">
+                  -{formatCurrency(Math.max(0, (reportData.monthlyRecords?.filter(r => businessData.employees?.find(e => e.id === r.employeeId)?.role === 'Karyawan')?.length || 0) * 10000))}
+                </span>
+              </div>
+              <div className="border-t border-gray-300 pt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-gray-800">Total Gaji Owner:</span>
+                  <span className={`text-xl font-bold ${reportData.totalGajiOwner >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(reportData.totalGajiOwner)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </>
