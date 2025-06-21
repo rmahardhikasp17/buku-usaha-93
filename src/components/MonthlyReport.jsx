@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Calendar, Download, DollarSign, TrendingUp, Users, PiggyBank, FileText } from 'lucide-react';
+import { Calendar, Download, DollarSign, TrendingUp, Users, PiggyBank, FileText, ShoppingCart } from 'lucide-react';
 import { formatCurrency } from '../utils/dataManager';
 import { toast } from 'sonner';
 
@@ -31,6 +30,10 @@ const MonthlyReport = ({ businessData }) => {
     // Filter transactions for the selected month
     const monthlyTransactions = Object.values(businessData.transactions || {})
       .filter(transaction => transaction.date >= monthStart && transaction.date <= monthEnd);
+
+    // Filter product sales for the selected month
+    const monthlyProductSales = Object.values(businessData.productSales || {})
+      .filter(sale => sale.date >= monthStart && sale.date <= monthEnd);
 
     // Calculate totals
     let totalRevenue = 0;
@@ -126,11 +129,14 @@ const MonthlyReport = ({ businessData }) => {
       .filter(t => t.type === 'Pengeluaran')
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
+    // Calculate product sales revenue
+    const totalProductRevenue = monthlyProductSales.reduce((sum, sale) => sum + sale.total, 0);
+
     // Owner savings = 40k × active days
     const ownerSavings = 40000 * activeDays.size;
 
     // Net profit = Total revenue + Income - Total employee salaries - Owner salary - Expenses
-    const netProfit = totalRevenue + income - totalEmployeeSalaries - Math.max(0, totalOwnerSalary) - expenses;
+    const netProfit = totalRevenue + income + totalProductRevenue - totalEmployeeSalaries - Math.max(0, totalOwnerSalary) - expenses;
 
     const data = {
       totalRevenue,
@@ -138,12 +144,14 @@ const MonthlyReport = ({ businessData }) => {
       totalEmployeeSalaries,
       ownerSavings,
       totalBonuses,
+      totalProductRevenue,
       netProfit,
       activeDays: activeDays.size,
       activeEmployees: activeEmployees.size,
       ownerSalary: totalOwnerSalary,
       income,
       monthlyRecords,
+      monthlyProductSales,
       ownerData
     };
 
@@ -195,8 +203,8 @@ const MonthlyReport = ({ businessData }) => {
       {/* Summary Statistics */}
       {reportData && (
         <>
-          {/* Main Statistics - 4 Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Main Statistics - 5 Columns */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -244,6 +252,18 @@ const MonthlyReport = ({ businessData }) => {
                 </div>
               </div>
             </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="text-orange-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Product Revenue</p>
+                  <p className="text-2xl font-bold text-orange-600">{formatCurrency(reportData.totalProductRevenue)}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Additional Statistics - 3 Columns */}
@@ -258,6 +278,7 @@ const MonthlyReport = ({ businessData }) => {
                   <p className={`text-2xl font-bold ${reportData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatCurrency(reportData.netProfit)}
                   </p>
+                  <p className="text-xs text-gray-500">Including product sales</p>
                 </div>
               </div>
             </div>
@@ -298,6 +319,22 @@ const MonthlyReport = ({ businessData }) => {
                   <p className="text-sm text-gray-600">Total Bonus Services</p>
                   <p className="text-2xl font-bold text-yellow-600">{formatCurrency(reportData.totalBonuses)}</p>
                   <p className="text-xs text-gray-500 mt-1">100% bonus diberikan ke karyawan</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Product Sales Summary */}
+          {reportData.totalProductRevenue > 0 && (
+            <div className="bg-orange-50 rounded-xl shadow-sm p-6 border border-orange-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="text-orange-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Product Sales</p>
+                  <p className="text-2xl font-bold text-orange-600">{formatCurrency(reportData.totalProductRevenue)}</p>
+                  <p className="text-xs text-gray-500 mt-1">{reportData.monthlyProductSales.length} transactions</p>
                 </div>
               </div>
             </div>

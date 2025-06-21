@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Package, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { getTodayTotal, formatCurrency } from '../utils/dataManager';
@@ -6,6 +5,11 @@ import { getTodayTotal, formatCurrency } from '../utils/dataManager';
 const Dashboard = ({ businessData }) => {
   const todayTotal = getTodayTotal(businessData);
   const today = new Date().toLocaleDateString();
+  
+  // Calculate today's product sales
+  const todayProductSales = Object.values(businessData.productSales || {})
+    .filter(sale => sale.date === new Date().toISOString().split('T')[0])
+    .reduce((sum, sale) => sum + sale.total, 0);
 
   const stats = [
     {
@@ -21,15 +25,15 @@ const Dashboard = ({ businessData }) => {
       color: 'bg-green-500'
     },
     {
-      title: "Today's Revenue",
+      title: "Today's Service Revenue",
       value: formatCurrency(todayTotal),
       icon: DollarSign,
       color: 'bg-purple-500'
     },
     {
-      title: 'Active Records',
-      value: Object.keys(businessData.dailyRecords).length,
-      icon: TrendingUp,
+      title: "Today's Product Sales",
+      value: formatCurrency(todayProductSales),
+      icon: Package,
       color: 'bg-orange-500'
     }
   ];

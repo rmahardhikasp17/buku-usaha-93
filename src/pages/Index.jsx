@@ -4,7 +4,9 @@ import Navigation from '../components/Navigation';
 import Dashboard from '../components/Dashboard';
 import ServicesManager from '../components/ServicesManager';
 import EmployeeManager from '../components/EmployeeManager';
+import ProductManager from '../components/ProductManager';
 import DailyInput from '../components/DailyInput';
+import ProductSales from '../components/ProductSales';
 import TransactionForm from '../components/TransactionForm';
 import DailyRecap from '../components/DailyRecap';
 import MonthlyReport from '../components/MonthlyReport';
@@ -17,8 +19,10 @@ const Index = () => {
     businessName: 'My Business',
     services: [],
     employees: [],
+    products: [],
     dailyRecords: {},
     transactions: {},
+    productSales: {},
     sisaPendapatanRecords: {}
   });
 
@@ -45,8 +49,12 @@ const Index = () => {
         return <ServicesManager businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'employees':
         return <EmployeeManager businessData={businessData} updateBusinessData={updateBusinessData} />;
+      case 'products':
+        return <ProductManager businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'daily-input':
         return <DailyInput businessData={businessData} updateBusinessData={updateBusinessData} />;
+      case 'product-sales':
+        return <ProductSales businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'transactions':
         return <TransactionForm businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'daily-recap':
