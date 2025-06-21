@@ -27,8 +27,19 @@ const DailyRecap = ({ businessData }) => {
     return servicePrice * serviceQuantity;
   };
 
+  const calculateBonusTotal = (bonusServices) => {
+    if (!bonusServices) return 0;
+    return Object.entries(bonusServices)
+      .filter(([_, selected]) => selected)
+      .reduce((sum, [serviceId, _]) => {
+        const service = businessData.services?.find(s => s.id === serviceId);
+        return sum + (Number(service?.price) || 0);
+      }, 0);
+  };
+
   const calculateOwnerSalary = (dailyRecords) => {
     let ownerRevenue = 0;
+    let ownerBonus = 0;
     let employeeRevenue = 0;
     let employeeCount = 0;
 
@@ -40,8 +51,11 @@ const DailyRecap = ({ businessData }) => {
           return sum + calculateServiceTotal(serviceId, quantity);
         }, 0);
 
+      const bonusTotal = calculateBonusTotal(record.bonusServices);
+
       if (employee?.role === 'Owner') {
         ownerRevenue += recordTotal;
+        ownerBonus += bonusTotal;
       } else if (employee?.role === 'Karyawan') {
         employeeRevenue += recordTotal;
         employeeCount++;
@@ -50,14 +64,16 @@ const DailyRecap = ({ businessData }) => {
 
     // Owner salary calculation:
     // + Owner's service revenue
+    // + Owner's bonus services
     // + 50% of all employee revenue
     // - Rp 40,000 (daily savings)
     // - Rp 10,000 × number of employees present
-    const ownerSalary = ownerRevenue + (employeeRevenue * 0.5) - 40000 - (10000 * employeeCount);
+    const ownerSalary = ownerRevenue + ownerBonus + (employeeRevenue * 0.5) - 40000 - (10000 * employeeCount);
     
     return {
       ownerSalary,
       ownerRevenue,
+      ownerBonus,
       employeeRevenue,
       employeeCount
     };
@@ -113,7 +129,7 @@ const DailyRecap = ({ businessData }) => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-barbershop-red focus:border-transparent"
           />
         </div>
       </div>
@@ -203,6 +219,7 @@ const DailyRecap = ({ businessData }) => {
                   return sum + calculateServiceTotal(serviceId, quantity);
                 }, 0);
 
+              const bonusTotal = calculateBonusTotal(record.bonusServices);
               const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
 
               return (
@@ -220,6 +237,11 @@ const DailyRecap = ({ businessData }) => {
                       <p className="text-2xl font-bold text-green-600">
                         {formatCurrency(employeeTotal)}
                       </p>
+                      {bonusTotal > 0 && (
+                        <p className="text-lg font-medium text-yellow-600">
+                          Bonus: {formatCurrency(bonusTotal)}
+                        </p>
+                      )}
                       {employee?.role === 'Owner' && (
                         <p className="text-sm text-gray-600 mt-1">
                           Salary: <span className={`font-medium ${ownerData.ownerSalary >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -230,26 +252,50 @@ const DailyRecap = ({ businessData }) => {
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-gray-700">Services Performed:</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {Object.entries(record.services || {})
-                        .filter(([_, quantity]) => Number(quantity) > 0)
-                        .map(([serviceId, quantity]) => {
-                          const serviceTotal = calculateServiceTotal(serviceId, quantity);
-                          return (
-                            <div key={serviceId} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                              <span className="text-sm text-gray-700">{getServiceName(serviceId)}</span>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm font-medium text-gray-800">{Number(quantity)}x</span>
-                                <span className="text-sm text-green-600">
-                                  {formatCurrency(serviceTotal)}
-                                </span>
+                  <div className="space-y-4">
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Main Services Performed:</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {Object.entries(record.services || {})
+                          .filter(([_, quantity]) => Number(quantity) > 0)
+                          .map(([serviceId, quantity]) => {
+                            const serviceTotal = calculateServiceTotal(serviceId, quantity);
+                            return (
+                              <div key={serviceId} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <span className="text-sm text-gray-700">{getServiceName(serviceId)}</span>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-medium text-gray-800">{Number(quantity)}x</span>
+                                  <span className="text-sm text-green-600">
+                                    {formatCurrency(serviceTotal)}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                      </div>
                     </div>
+
+                    {/* Bonus Services */}
+                    {record.bonusServices && Object.values(record.bonusServices).some(selected => selected) && (
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Bonus Services:</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {Object.entries(record.bonusServices || {})
+                            .filter(([_, selected]) => selected)
+                            .map(([serviceId, _]) => {
+                              const service = businessData.services?.find(s => s.id === serviceId);
+                              return (
+                                <div key={serviceId} className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                  <span className="text-sm text-gray-700">{getServiceName(serviceId)}</span>
+                                  <span className="text-sm text-yellow-600 font-medium">
+                                    {formatCurrency(service?.price || 0)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -267,6 +313,10 @@ const DailyRecap = ({ businessData }) => {
                     <div className="flex justify-between">
                       <span>Owner Service Revenue:</span>
                       <span>{formatCurrency(ownerData.ownerRevenue)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Owner Bonus:</span>
+                      <span>{formatCurrency(ownerData.ownerBonus)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>50% Employee Revenue:</span>

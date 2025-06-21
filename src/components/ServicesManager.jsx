@@ -2,11 +2,12 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import { formatCurrency } from '../utils/dataManager';
+import { Checkbox } from './ui/checkbox';
 
 const ServicesManager = ({ businessData, updateBusinessData }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', price: '' });
+  const [formData, setFormData] = useState({ name: '', price: '', bonusable: false });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -15,19 +16,24 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
     const newService = {
       id: Date.now().toString(),
       name: formData.name.trim(),
-      price: parseFloat(formData.price)
+      price: parseFloat(formData.price),
+      bonusable: formData.bonusable
     };
 
     const updatedServices = [...businessData.services, newService];
     updateBusinessData({ services: updatedServices });
     
-    setFormData({ name: '', price: '' });
+    setFormData({ name: '', price: '', bonusable: false });
     setIsAdding(false);
   };
 
   const handleEdit = (service) => {
     setEditingId(service.id);
-    setFormData({ name: service.name, price: service.price.toString() });
+    setFormData({ 
+      name: service.name, 
+      price: service.price.toString(),
+      bonusable: service.bonusable || false
+    });
   };
 
   const handleUpdate = (e) => {
@@ -36,13 +42,18 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
 
     const updatedServices = businessData.services.map(service =>
       service.id === editingId
-        ? { ...service, name: formData.name.trim(), price: parseFloat(formData.price) }
+        ? { 
+            ...service, 
+            name: formData.name.trim(), 
+            price: parseFloat(formData.price),
+            bonusable: formData.bonusable
+          }
         : service
     );
 
     updateBusinessData({ services: updatedServices });
     setEditingId(null);
-    setFormData({ name: '', price: '' });
+    setFormData({ name: '', price: '', bonusable: false });
   };
 
   const handleDelete = (serviceId) => {
@@ -55,7 +66,7 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
   const handleCancel = () => {
     setIsAdding(false);
     setEditingId(null);
-    setFormData({ name: '', price: '' });
+    setFormData({ name: '', price: '', bonusable: false });
   };
 
   return (
@@ -70,7 +81,7 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
           {!isAdding && (
             <button
               onClick={() => setIsAdding(true)}
-              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center space-x-2 bg-barbershop-red text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors"
             >
               <Plus size={20} />
               <span>Add Service</span>
@@ -94,7 +105,7 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Haircut, Wash & Dry"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-barbershop-red focus:border-transparent"
                   required
                 />
               </div>
@@ -109,10 +120,20 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-barbershop-red focus:border-transparent"
                   required
                 />
               </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="bonusable"
+                checked={formData.bonusable}
+                onCheckedChange={(checked) => setFormData({ ...formData, bonusable: checked })}
+              />
+              <label htmlFor="bonusable" className="text-sm font-medium text-gray-700">
+                Bonus Service (100% to employee)
+              </label>
             </div>
             <div className="flex space-x-3">
               <button
@@ -152,7 +173,7 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
             <p className="text-gray-500 mb-4">Add your first service to get started</p>
             <button
               onClick={() => setIsAdding(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className="bg-barbershop-red text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors"
             >
               Add Service
             </button>
@@ -168,7 +189,7 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-barbershop-red focus:border-transparent"
                         required
                       />
                       <input
@@ -177,9 +198,19 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
                         min="0"
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-barbershop-red focus:border-transparent"
                         required
                       />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-bonusable-${service.id}`}
+                        checked={formData.bonusable}
+                        onCheckedChange={(checked) => setFormData({ ...formData, bonusable: checked })}
+                      />
+                      <label htmlFor={`edit-bonusable-${service.id}`} className="text-sm font-medium text-gray-700">
+                        Bonus Service (100% to employee)
+                      </label>
                     </div>
                     <div className="flex space-x-3">
                       <button
@@ -202,7 +233,14 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
                 ) : (
                   <div className="flex justify-between items-center">
                     <div>
-                      <h4 className="text-lg font-medium text-gray-800">{service.name}</h4>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="text-lg font-medium text-gray-800">{service.name}</h4>
+                        {service.bonusable && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+                            Bonus
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xl font-bold text-green-600 mt-1">
                         {formatCurrency(service.price)}
                       </p>
@@ -210,7 +248,7 @@ const ServicesManager = ({ businessData, updateBusinessData }) => {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(service)}
-                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        className="p-2 text-barbershop-blue hover:bg-blue-100 rounded-lg transition-colors"
                       >
                         <Edit size={18} />
                       </button>
