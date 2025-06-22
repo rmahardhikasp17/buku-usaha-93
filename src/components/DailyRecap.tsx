@@ -54,6 +54,30 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
     return total;
   };
 
+  const getBonusDetails = (bonusServices: any, bonusQuantities: any) => {
+    const details: { name: string; quantity: number; value: number }[] = [];
+    
+    if (!bonusServices || !bonusQuantities) return details;
+    
+    Object.entries(bonusServices).forEach(([serviceId, bonusData]: [string, any]) => {
+      Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]: [string, any]) => {
+        if (isEnabled) {
+          const bonusService = businessData.services?.find(s => s.id === bonusId);
+          const bonusQty = bonusQuantities[serviceId]?.[bonusId] || 0;
+          if (bonusQty > 0 && bonusService) {
+            details.push({
+              name: bonusService.name,
+              quantity: bonusQty,
+              value: (bonusService.price || 0) * bonusQty
+            });
+          }
+        }
+      });
+    });
+    
+    return details;
+  };
+
   const calculateEmployeeSalary = (record: any, totalEmployeeRevenue: number, employeeCount: number) => {
     const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
     const isOwner = employee?.role === 'Owner';
@@ -65,6 +89,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
       }, 0);
 
     const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+    const bonusDetails = getBonusDetails(record.bonusServices, record.bonusQuantities);
 
     if (isOwner) {
       const employeeShareRevenue = totalEmployeeRevenue * 0.5;
@@ -76,9 +101,11 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
         breakdown: {
           serviceRevenue,
           bonusTotal,
+          bonusDetails,
           employeeShareRevenue,
           dailySavings,
-          employeeDeduction
+          employeeDeduction,
+          employeeCount
         }
       };
     } else {
@@ -90,6 +117,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
         breakdown: {
           baseRevenue,
           bonusTotal,
+          bonusDetails,
           attendanceBonus
         }
       };
@@ -176,7 +204,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
         </div>
       </div>
 
-      {/* Summary Cards - Removed Average per Employee */}
+      {/* Summary Cards - Only Active Employees and Total Revenue */}
       {dailyRecords.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
@@ -238,8 +266,6 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                   return sum + calculateServiceTotal(serviceId, Number(quantity));
                 }, 0);
 
-              const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
-
               return (
                 <div key={index} className="p-8">
                   <div className="flex justify-between items-start mb-6">
@@ -250,13 +276,13 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                       <p className="text-sm text-gray-600">{isOwner ? 'Owner' : 'Employee'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xl font-bold text-blue-600 mb-2">
+                      <p className="text-xl font-bold text-blue-600 mb-3">
                         Gaji: {formatCurrency(salaryData.salary)}
                       </p>
                       
-                      {/* Detailed Salary Breakdown */}
-                      <div className="text-sm text-gray-600 space-y-1 bg-blue-50 p-4 rounded-lg border">
-                        <p className="font-medium text-gray-700 mb-2">Rincian Gaji:</p>
+                      {/* Structured Salary Breakdown */}
+                      <div className="text-sm text-gray-700 space-y-1 bg-blue-50 p-4 rounded-lg border max-w-md">
+                        <p className="font-medium text-gray-800 mb-2">Rinciannya:</p>
                         
                         {isOwner ? (
                           <>
@@ -264,12 +290,12 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                               <span>+ Pendapatan Layanan:</span>
                               <span className="text-green-600">{formatCurrency(salaryData.breakdown.serviceRevenue)}</span>
                             </div>
-                            {salaryData.breakdown.bonusTotal > 0 && (
-                              <div className="flex justify-between">
-                                <span>+ Bonus:</span>
-                                <span className="text-green-600">{formatCurrency(salaryData.breakdown.bonusTotal)}</span>
+                            {salaryData.breakdown.bonusDetails.map((bonus, idx) => (
+                              <div key={idx} className="flex justify-between">
+                                <span>+ Bonus {bonus.name}:</span>
+                                <span className="text-green-600">{formatCurrency(bonus.value)}</span>
                               </div>
-                            )}
+                            ))}
                             {salaryData.breakdown.employeeShareRevenue > 0 && (
                               <div className="flex justify-between">
                                 <span>+ 50% Pendapatan Karyawan:</span>
@@ -277,12 +303,12 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                               </div>
                             )}
                             <div className="flex justify-between">
-                              <span>- Tabungan Harian:</span>
+                              <span>- Tabungan Owner:</span>
                               <span className="text-red-600">-{formatCurrency(salaryData.breakdown.dailySavings)}</span>
                             </div>
                             {salaryData.breakdown.employeeDeduction > 0 && (
                               <div className="flex justify-between">
-                                <span>- Uang Hadir Karyawan:</span>
+                                <span>- Uang Hadir Karyawan ({salaryData.breakdown.employeeCount} × {formatCurrency(10000)}):</span>
                                 <span className="text-red-600">-{formatCurrency(salaryData.breakdown.employeeDeduction)}</span>
                               </div>
                             )}
@@ -290,30 +316,21 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                         ) : (
                           <>
                             <div className="flex justify-between">
-                              <span>+ 50% Pendapatan Layanan:</span>
+                              <span>+ 50% Pendapatan:</span>
                               <span className="text-green-600">{formatCurrency(salaryData.breakdown.baseRevenue)}</span>
                             </div>
-                            {salaryData.breakdown.bonusTotal > 0 && (
-                              <div className="flex justify-between">
-                                <span>+ Bonus:</span>
-                                <span className="text-green-600">{formatCurrency(salaryData.breakdown.bonusTotal)}</span>
+                            {salaryData.breakdown.bonusDetails.map((bonus, idx) => (
+                              <div key={idx} className="flex justify-between">
+                                <span>+ Bonus {bonus.name}:</span>
+                                <span className="text-green-600">{formatCurrency(bonus.value)}</span>
                               </div>
-                            )}
+                            ))}
                             <div className="flex justify-between">
-                              <span>+ Uang Hadir:</span>
+                              <span>+ Hadir:</span>
                               <span className="text-green-600">{formatCurrency(salaryData.breakdown.attendanceBonus)}</span>
                             </div>
                           </>
                         )}
-                        
-                        <div className="border-t border-gray-300 pt-2 mt-2">
-                          <div className="flex justify-between font-medium">
-                            <span>Total Gaji:</span>
-                            <span className={salaryData.salary >= 0 ? 'text-blue-600' : 'text-red-600'}>
-                              {formatCurrency(salaryData.salary)}
-                            </span>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
