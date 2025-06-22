@@ -37,6 +37,65 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
     return service.price * quantity;
   };
 
+  const calculateBonusTotal = (bonusServices: any, bonusQuantities: any) => {
+    if (!bonusServices || !bonusQuantities) return 0;
+    
+    let total = 0;
+    Object.entries(bonusServices).forEach(([serviceId, bonusData]: [string, any]) => {
+      Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]: [string, any]) => {
+        if (isEnabled) {
+          const bonusService = businessData.services?.find(s => s.id === bonusId);
+          const bonusQty = bonusQuantities[serviceId]?.[bonusId] || 0;
+          total += (bonusService?.price || 0) * bonusQty;
+        }
+      });
+    });
+    
+    return total;
+  };
+
+  const calculateEmployeeSalary = (record: any, totalEmployeeRevenue: number, employeeCount: number) => {
+    const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+    const isOwner = employee?.role === 'Owner';
+    
+    const serviceRevenue = Object.entries(record.services || {})
+      .filter(([_, quantity]) => Number(quantity) > 0)
+      .reduce((sum, [serviceId, quantity]) => {
+        return sum + calculateServiceTotal(serviceId, Number(quantity));
+      }, 0);
+
+    const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+
+    if (isOwner) {
+      const employeeShareRevenue = totalEmployeeRevenue * 0.5;
+      const dailySavings = 40000;
+      const employeeDeduction = 10000 * employeeCount;
+      
+      return {
+        salary: serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings - employeeDeduction,
+        breakdown: {
+          serviceRevenue,
+          bonusTotal,
+          employeeShareRevenue,
+          dailySavings,
+          employeeDeduction
+        }
+      };
+    } else {
+      const baseRevenue = serviceRevenue * 0.5;
+      const attendanceBonus = 10000;
+      
+      return {
+        salary: baseRevenue + bonusTotal + attendanceBonus,
+        breakdown: {
+          baseRevenue,
+          bonusTotal,
+          attendanceBonus
+        }
+      };
+    }
+  };
+
   const dailyRecords = getDailyRecords(selectedDate);
   
   // Calculate grand total properly
@@ -49,7 +108,24 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
     return sum + recordTotal;
   }, 0);
 
-  const averagePerEmployee = dailyRecords.length > 0 ? grandTotal / dailyRecords.length : 0;
+  // Calculate total employee revenue (excluding owner)
+  const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
+    const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+    if (employee?.role !== 'Owner') {
+      const recordTotal = Object.entries(record.services || {})
+        .filter(([_, quantity]) => Number(quantity) > 0)
+        .reduce((recordSum, [serviceId, quantity]) => {
+          return recordSum + calculateServiceTotal(serviceId, Number(quantity));
+        }, 0);
+      return sum + recordTotal;
+    }
+    return sum;
+  }, 0);
+
+  const employeeCount = dailyRecords.filter(record => {
+    const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+    return employee?.role !== 'Owner';
+  }).length;
 
   const handleExport = () => {
     if (dailyRecords.length === 0) {
@@ -100,9 +176,9 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Removed Average per Employee */}
       {dailyRecords.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -122,17 +198,6 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
               <div>
                 <p className="text-sm text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-800">{formatCurrency(grandTotal)}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Eye className="text-purple-600" size={24} />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Average per Employee</p>
-                <p className="text-2xl font-bold text-gray-800">{formatCurrency(averagePerEmployee)}</p>
               </div>
             </div>
           </div>
@@ -163,25 +228,93 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
         ) : (
           <div className="divide-y divide-gray-300">
             {dailyRecords.map((record, index) => {
+              const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+              const isOwner = employee?.role === 'Owner';
+              const salaryData = calculateEmployeeSalary(record, totalEmployeeRevenue, employeeCount);
+
               const employeeTotal = Object.entries(record.services || {})
                 .filter(([_, quantity]) => Number(quantity) > 0)
                 .reduce((sum, [serviceId, quantity]) => {
                   return sum + calculateServiceTotal(serviceId, Number(quantity));
                 }, 0);
 
+              const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+
               return (
                 <div key={index} className="p-8">
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex justify-between items-start mb-6">
                     <div>
                       <h4 className="text-lg font-medium text-gray-800">
                         {getEmployeeName(record.employeeId)}
                       </h4>
-                      <p className="text-sm text-gray-600">Employee Revenue</p>
+                      <p className="text-sm text-gray-600">{isOwner ? 'Owner' : 'Employee'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-green-600">
-                        {formatCurrency(employeeTotal)}
+                      <p className="text-xl font-bold text-blue-600 mb-2">
+                        Gaji: {formatCurrency(salaryData.salary)}
                       </p>
+                      
+                      {/* Detailed Salary Breakdown */}
+                      <div className="text-sm text-gray-600 space-y-1 bg-blue-50 p-4 rounded-lg border">
+                        <p className="font-medium text-gray-700 mb-2">Rincian Gaji:</p>
+                        
+                        {isOwner ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span>+ Pendapatan Layanan:</span>
+                              <span className="text-green-600">{formatCurrency(salaryData.breakdown.serviceRevenue)}</span>
+                            </div>
+                            {salaryData.breakdown.bonusTotal > 0 && (
+                              <div className="flex justify-between">
+                                <span>+ Bonus:</span>
+                                <span className="text-green-600">{formatCurrency(salaryData.breakdown.bonusTotal)}</span>
+                              </div>
+                            )}
+                            {salaryData.breakdown.employeeShareRevenue > 0 && (
+                              <div className="flex justify-between">
+                                <span>+ 50% Pendapatan Karyawan:</span>
+                                <span className="text-green-600">{formatCurrency(salaryData.breakdown.employeeShareRevenue)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between">
+                              <span>- Tabungan Harian:</span>
+                              <span className="text-red-600">-{formatCurrency(salaryData.breakdown.dailySavings)}</span>
+                            </div>
+                            {salaryData.breakdown.employeeDeduction > 0 && (
+                              <div className="flex justify-between">
+                                <span>- Uang Hadir Karyawan:</span>
+                                <span className="text-red-600">-{formatCurrency(salaryData.breakdown.employeeDeduction)}</span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex justify-between">
+                              <span>+ 50% Pendapatan Layanan:</span>
+                              <span className="text-green-600">{formatCurrency(salaryData.breakdown.baseRevenue)}</span>
+                            </div>
+                            {salaryData.breakdown.bonusTotal > 0 && (
+                              <div className="flex justify-between">
+                                <span>+ Bonus:</span>
+                                <span className="text-green-600">{formatCurrency(salaryData.breakdown.bonusTotal)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between">
+                              <span>+ Uang Hadir:</span>
+                              <span className="text-green-600">{formatCurrency(salaryData.breakdown.attendanceBonus)}</span>
+                            </div>
+                          </>
+                        )}
+                        
+                        <div className="border-t border-gray-300 pt-2 mt-2">
+                          <div className="flex justify-between font-medium">
+                            <span>Total Gaji:</span>
+                            <span className={salaryData.salary >= 0 ? 'text-blue-600' : 'text-red-600'}>
+                              {formatCurrency(salaryData.salary)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
@@ -206,6 +339,39 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                           );
                         })}
                     </div>
+
+                    {/* Bonus Services */}
+                    {record.bonusServices && Object.keys(record.bonusServices).length > 0 && (
+                      <div className="mt-4">
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Bonus Services:</h5>
+                        <div className="space-y-2">
+                          {Object.entries(record.bonusServices || {}).map(([serviceId, bonusData]: [string, any]) => (
+                            Object.entries(bonusData || {})
+                              .filter(([_, isEnabled]) => isEnabled)
+                              .map(([bonusId, _]) => {
+                                const bonusService = businessData.services?.find(s => s.id === bonusId);
+                                const bonusQty = record.bonusQuantities?.[serviceId]?.[bonusId] || 0;
+                                const bonusValue = (bonusService?.price || 0) * bonusQty;
+                                
+                                return (
+                                  <div key={`${serviceId}-${bonusId}`} className="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm text-gray-700">{getServiceName(bonusId)}</span>
+                                      <span className="text-xs text-gray-500">({getServiceName(serviceId)})</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm font-medium text-gray-800">{bonusQty}x</span>
+                                      <span className="text-sm text-yellow-600 font-medium">
+                                        {formatCurrency(bonusValue)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -214,7 +380,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
             {/* Grand Total */}
             <div className="p-8 bg-blue-50 border-t border-gray-300">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-800">Grand Total:</span>
+                <span className="text-lg font-semibold text-gray-800">Grand Total Revenue:</span>
                 <span className="text-3xl font-bold text-blue-600">{formatCurrency(grandTotal)}</span>
               </div>
             </div>
