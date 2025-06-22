@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Calendar, Download, FileText, DollarSign, Users, PiggyBank, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '../utils/dataManager';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface BusinessData {
   services: any[];
@@ -15,11 +16,20 @@ interface MonthlyReportProps {
   businessData: BusinessData;
 }
 
+interface PerEmployeeSalary {
+  employeeId: string;
+  name: string;
+  role: string;
+  gaji: number;
+  bonus: number;
+  potongan: number;
+}
+
 const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
   const [reportData, setReportData] = useState<any>(null);
 
-  // Helper functions matching DailyRecap logic
+  // Helper functions
   const calculateServiceTotal = (serviceId: string, quantity: number) => {
     const service = businessData.services?.find(s => s.id === serviceId);
     if (!service || !service.price || quantity <= 0) return 0;
@@ -54,16 +64,43 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
 
     if (isOwner) {
       const employeeShareRevenue = totalEmployeeRevenue * 0.5;
-      const dailySavings = 40000 * activeDays; // 40k per active day
-      const employeeDeduction = 10000 * employeeCount; // 10k per employee attendance
+      const dailySavings = 40000 * activeDays;
+      const employeeDeduction = 10000 * employeeCount;
       
       return serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings - employeeDeduction;
     } else {
       const baseRevenue = serviceRevenue * 0.5;
-      const attendanceBonus = 10000; // 10k attendance bonus
+      const attendanceBonus = 10000;
       
       return baseRevenue + bonusTotal + attendanceBonus;
     }
+  };
+
+  const calculatePerEmployeeSalaries = (monthlyRecords: any[]): PerEmployeeSalary[] => {
+    const employeeSalaries: Record<string, PerEmployeeSalary> = {};
+
+    monthlyRecords.forEach(record => {
+      const employeeId = record.employeeId;
+      const employee = businessData.employees?.find(emp => emp.id === employeeId);
+      
+      if (!employeeSalaries[employeeId]) {
+        employeeSalaries[employeeId] = {
+          employeeId,
+          name: employee?.name || 'Unknown',
+          role: employee?.role || 'Unknown',
+          gaji: 0,
+          bonus: 0,
+          potongan: 0
+        };
+      }
+
+      // Use saved data from daily records
+      employeeSalaries[employeeId].gaji += (record.gajiDiterima || 0);
+      employeeSalaries[employeeId].bonus += (record.bonusTotal || 0);
+      employeeSalaries[employeeId].potongan += (record.potongan || 0);
+    });
+
+    return Object.values(employeeSalaries);
   };
 
   const calculateMonthlyReport = () => {
@@ -83,6 +120,25 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       return transactionDate >= startDate && transactionDate <= endDate;
     });
 
+    // Use saved data from dailyRecords instead of recalculating
+    const totalGajiKaryawan = monthlyRecords
+      .filter(record => {
+        const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+        return employee?.role === 'Karyawan';
+      })
+      .reduce((sum, record) => sum + (record.gajiDiterima || 0), 0);
+
+    const totalGajiOwner = monthlyRecords
+      .filter(record => {
+        const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+        return employee?.role === 'Owner';
+      })
+      .reduce((sum, record) => sum + (record.gajiDiterima || 0), 0);
+
+    const totalTabunganOwner = monthlyRecords.reduce((sum, record) => sum + (record.potongan || 0), 0);
+
+    const totalBonus = monthlyRecords.reduce((sum, record) => sum + (record.bonusTotal || 0), 0);
+
     // Calculate total revenue from services
     const totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
       const recordTotal = Object.entries(record.services || {})
@@ -99,55 +155,27 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
 
     // Calculate active days and employee count
     const activeDays = new Set(monthlyRecords.map((record: any) => record.date)).size;
-    const employeeRecords = monthlyRecords.filter((record: any) => {
-      const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
-      return employee?.role !== 'Owner';
-    });
-    const employeeCount = employeeRecords.length;
+    const activeEmployees = new Set(monthlyRecords.map((record: any) => record.employeeId)).size;
 
-    // Calculate total employee revenue (excluding owner)
-    const totalEmployeeRevenue = employeeRecords.reduce((sum: number, record: any) => {
-      const recordTotal = Object.entries(record.services || {})
-        .filter(([_, quantity]) => Number(quantity) > 0)
-        .reduce((recordSum, [serviceId, quantity]) => {
-          return recordSum + calculateServiceTotal(serviceId, Number(quantity));
-        }, 0);
-      return sum + recordTotal;
-    }, 0);
-
-    // Calculate salaries using actual logic
-    let totalGajiKaryawan = 0;
-    let totalTabunganOwner = 0;
-
-    monthlyRecords.forEach((record: any) => {
-      const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
-      const isOwner = employee?.role === 'Owner';
-      
-      const salary = calculateEmployeeSalary(record, isOwner, totalEmployeeRevenue, employeeCount, activeDays);
-      
-      if (isOwner) {
-        totalTabunganOwner += 40000; // Daily savings per active day
-      } else {
-        totalGajiKaryawan += salary;
-      }
-    });
-
-    // Calculate net profit
+    // Calculate net profit using saved data
     const labaBersih = totalPendapatan - totalPengeluaran - totalGajiKaryawan - totalTabunganOwner;
 
-    // Calculate active employees
-    const activeEmployees = new Set(monthlyRecords.map((record: any) => record.employeeId)).size;
+    // Calculate per employee salaries
+    const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
 
     setReportData({
       totalPendapatan,
       totalPengeluaran,
       totalGajiKaryawan,
       totalTabunganOwner,
+      totalBonus,
       labaBersih,
       activeDays,
       activeEmployees,
+      ownerSalary: totalGajiOwner,
       monthlyRecords,
-      monthlyTransactions
+      monthlyTransactions,
+      perEmployeeSalaries
     });
   };
 
@@ -170,6 +198,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
         ['Total Pengeluaran', reportData.totalPengeluaran],
         ['Total Gaji Karyawan', reportData.totalGajiKaryawan],
         ['Total Tabungan Owner', reportData.totalTabunganOwner],
+        ['Total Bonus', reportData.totalBonus],
         ['Laba Bersih', reportData.labaBersih],
         [''],
         ['AKTIVITAS'],
@@ -180,55 +209,43 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan Bulanan');
 
-      // Daily records sheet with detailed calculations
+      // Daily records sheet
       if (reportData.monthlyRecords.length > 0) {
         const dailyData = [
-          ['Tanggal', 'Karyawan', 'Role', 'Total Layanan', 'Bonus', 'Gaji Diterima', 'Tabungan Owner'],
+          ['Tanggal', 'Karyawan', 'Role', 'Gaji Diterima', 'Bonus', 'Potongan'],
           ...reportData.monthlyRecords.map((record: any) => {
             const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
-            const isOwner = employee?.role === 'Owner';
-            
-            const serviceRevenue = Object.entries(record.services || {})
-              .filter(([_, quantity]) => Number(quantity) > 0)
-              .reduce((sum, [serviceId, quantity]) => {
-                return sum + calculateServiceTotal(serviceId, Number(quantity));
-              }, 0);
-            
-            const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
-            
-            const totalEmployeeRevenue = reportData.monthlyRecords.filter((r: any) => {
-              const emp = businessData.employees?.find(e => e.id === r.employeeId);
-              return emp?.role !== 'Owner';
-            }).reduce((sum: number, r: any) => {
-              return sum + Object.entries(r.services || {})
-                .filter(([_, quantity]) => Number(quantity) > 0)
-                .reduce((rSum, [serviceId, quantity]) => {
-                  return rSum + calculateServiceTotal(serviceId, Number(quantity));
-                }, 0);
-            }, 0);
-            
-            const employeeCount = reportData.monthlyRecords.filter((r: any) => {
-              const emp = businessData.employees?.find(e => e.id === r.employeeId);
-              return emp?.role !== 'Owner';
-            }).length;
-            
-            const salary = calculateEmployeeSalary(record, isOwner, totalEmployeeRevenue, employeeCount, reportData.activeDays);
-            const tabunganOwner = isOwner ? 40000 : 0;
-
             return [
               record.date,
               employee?.name || 'Unknown',
               employee?.role || 'Unknown',
-              serviceRevenue,
-              bonusTotal,
-              salary,
-              tabunganOwner
+              record.gajiDiterima || 0,
+              record.bonusTotal || 0,
+              record.potongan || 0
             ];
           })
         ];
 
         const dailySheet = XLSX.utils.aoa_to_sheet(dailyData);
         XLSX.utils.book_append_sheet(workbook, dailySheet, 'Data Harian');
+      }
+
+      // Gaji per orang sheet
+      if (reportData.perEmployeeSalaries && reportData.perEmployeeSalaries.length > 0) {
+        const salaryData = [
+          ['Nama', 'Role', 'Total Gaji', 'Bonus', 'Potongan', 'Keterangan'],
+          ...reportData.perEmployeeSalaries.map((emp: PerEmployeeSalary) => [
+            emp.name,
+            emp.role,
+            emp.gaji,
+            emp.bonus,
+            emp.potongan,
+            emp.gaji < 2000000 ? 'Belum UMR' : 'Sesuai UMR'
+          ])
+        ];
+
+        const salarySheet = XLSX.utils.aoa_to_sheet(salaryData);
+        XLSX.utils.book_append_sheet(workbook, salarySheet, 'GajiPerOrang');
       }
 
       // Transactions sheet
@@ -345,6 +362,56 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
               );
             })}
           </div>
+
+          {/* Employee Salaries Section */}
+          {reportData.perEmployeeSalaries && reportData.perEmployeeSalaries.length > 0 && (
+            <div className="bg-gray-50 rounded-xl shadow-sm p-8 border border-gray-300">
+              <h3 className="text-lg font-semibold text-gray-800 mb-6">💼 Rangkuman Gaji Karyawan Bulan Ini</h3>
+              <div className="space-y-4">
+                {reportData.perEmployeeSalaries.map((emp: PerEmployeeSalary, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-2xl">
+                        {emp.role === 'Owner' ? '👤' : '🧑‍🔧'}
+                      </span>
+                      <div>
+                        <div className="font-medium text-gray-800">
+                          {emp.name} ({emp.role})
+                        </div>
+                        {emp.bonus > 0 && (
+                          <div className="text-sm text-gray-600">
+                            Bonus: {formatCurrency(emp.bonus)}
+                          </div>
+                        )}
+                        {emp.potongan > 0 && (
+                          <div className="text-sm text-gray-600">
+                            Potongan: {formatCurrency(emp.potongan)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="font-bold text-lg text-gray-800">{formatCurrency(emp.gaji)}</span>
+                      <Badge 
+                        variant={emp.gaji >= 2000000 ? "default" : "destructive"}
+                        className={emp.gaji >= 2000000 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                      >
+                        {emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                <div className="border-t pt-4 mt-6">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-800 text-lg">🧾 Total Gaji Dibayarkan :</span>
+                    <span className="font-bold text-2xl text-green-600">
+                      {formatCurrency(reportData.totalGajiKaryawan + Math.max(0, reportData.ownerSalary || 0))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
