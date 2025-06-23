@@ -1,5 +1,17 @@
 import React from 'react';
-import { Calendar, Download, FileText, DollarSign, Users, PiggyBank, TrendingUp, ShoppingCart, Briefcase, Clock, UserCheck } from 'lucide-react';
+import {
+  Calendar,
+  Download,
+  FileText,
+  DollarSign,
+  Users,
+  PiggyBank,
+  TrendingUp,
+  ShoppingCart,
+  Briefcase,
+  Clock,
+  UserCheck
+} from 'lucide-react';
 import { formatCurrency } from '../utils/dataManager';
 import { Badge } from '@/components/ui/badge';
 import { useMonthlyReport } from './useMonthlyReport';
@@ -13,51 +25,16 @@ interface PerEmployeeSalary {
   potongan: number;
 }
 
-interface OwnerBreakdown {
-  ownerServiceRevenue: number;
-  ownerBonus: number;
-  ownerShareFromKaryawan: number;
-  uangHadirKaryawan: number;
-  tabunganHarian: number;
-  finalOwnerSalary: number;
-}
+const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
+  const {
+    selectedMonth,
+    setSelectedMonth,
+    reportData,
+    calculateMonthlyReport,
+    handleExport,
+    showExport
+  } = useMonthlyReport(businessData);
 
-interface ReportData {
-  totalRevenue: number;
-  totalExpenses: number;
-  totalEmployeeSalaries: number;
-  ownerSavings: number;
-  totalBonuses: number;
-  totalProductRevenue: number;
-  netProfit: number;
-  activeDays: number;
-  activeEmployees: number;
-  ownerSalary: number;
-  income: number;
-  monthlyRecords: any[];
-  monthlyProductSales: any[];
-  monthlyTransactions: any[];
-  perEmployeeSalaries: PerEmployeeSalary[];
-  ownerBreakdown?: OwnerBreakdown;
-}
-
-interface MonthlyReportUIProps {
-  reportData: ReportData | null;
-  selectedMonth: string;
-  setSelectedMonth: (val: string) => void;
-  onCalculate: () => void;
-  onExport: () => void;
-  showExport: boolean;
-}
-
-const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
-  reportData,
-  selectedMonth,
-  setSelectedMonth,
-  onCalculate,
-  onExport,
-  showExport
-}) => {
   const totalSalaryPaid = reportData
     ? (reportData.totalEmployeeSalaries || 0) + (reportData.ownerSalary || 0)
     : 0;
@@ -115,7 +92,6 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="bg-gray-50 rounded-xl shadow-sm p-8 border border-gray-300">
         <div className="flex justify-between items-center">
           <div>
@@ -124,7 +100,7 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
           </div>
           {showExport && (
             <button
-              onClick={onExport}
+              onClick={handleExport}
               disabled={!reportData}
               className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -135,7 +111,6 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
         </div>
       </div>
 
-      {/* Filter */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center space-x-4">
@@ -151,7 +126,7 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
             />
           </div>
           <button
-            onClick={onCalculate}
+            onClick={calculateMonthlyReport}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Hitung Rekap Bulanan
@@ -159,7 +134,6 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
         </div>
       </div>
 
-      {/* Stats Grid */}
       {reportData && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, index) => {
@@ -181,7 +155,6 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
         </div>
       )}
 
-      {/* No Data */}
       {!reportData && (
         <div className="bg-white rounded-xl shadow-sm p-12 border border-gray-200 text-center">
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
