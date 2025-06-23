@@ -268,10 +268,11 @@ const MonthlyReport = ({ businessData }) => {
       toast.error('Failed to export to Excel');
     }
   };
+ 
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      *{/* Header */}
       <div className="bg-barbershop-cream rounded-xl shadow-sm p-8 border border-barbershop-red">
         <h2 className="text-2xl font-bold text-gray-800">Laporan Bulanan</h2>
         <p className="text-gray-600 mt-2">Generate monthly business reports</p>
