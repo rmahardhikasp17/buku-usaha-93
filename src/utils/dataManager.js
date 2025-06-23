@@ -135,44 +135,90 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
     document.body.removeChild(link);
   }
 };
-export const exportMonthlyReportToExcel = (reportData, businessData, selectedMonth) => {
+
+export const exportMonthlyReportToExcel = async (reportData, businessData, selectedMonth) => {
   if (!reportData) {
-    alert('No data to export');
+    alert('Tidak ada data untuk diekspor.');
     return;
   }
 
-  const summarySheet = [
-    ['Laporan Bulanan', selectedMonth],
-    [],
-    ['Ringkasan'],
-    ['Total Pendapatan', reportData.totalRevenue],
-    ['Total Pengeluaran', reportData.totalExpenses],
-    ['Total Gaji Karyawan', reportData.totalEmployeeSalaries],
-    ['Total Gaji Owner', reportData.ownerSalary],
-    ['Total Tabungan Owner', reportData.ownerSavings],
-    ['Total Product Revenue', reportData.totalProductRevenue],
-    ['Laba Bersih', reportData.netProfit],
-    [],
-    ['Aktivitas'],
-    ['Hari Aktif', reportData.activeDays],
-    ['Karyawan Aktif', reportData.activeEmployees],
-  ];
+  try {
+    const XLSX = (await import('xlsx')).default;
+    const workbook = XLSX.utils.book_new();
 
-  const csvContent = summarySheet.map(row => 
-    row.map(item => (typeof item === 'string' ? `"${item}"` : item)).join(',')
-  ).join('\n');
+    // Sheet 1: Ringkasan
+    const summarySheet = [
+      ['Laporan Bulanan', selectedMonth],
+      [],
+      ['Ringkasan'],
+      ['Total Pendapatan', reportData.totalRevenue],
+      ['Total Pengeluaran', reportData.totalExpenses],
+      ['Total Gaji Karyawan', reportData.totalEmployeeSalaries],
+      ['Total Gaji Owner', reportData.ownerSalary],
+      ['Total Tabungan Owner', reportData.ownerSavings],
+      ['Total Product Revenue', reportData.totalProductRevenue],
+      ['Laba Bersih', reportData.netProfit],
+      [],
+      ['Aktivitas'],
+      ['Hari Aktif', reportData.activeDays],
+      ['Karyawan Aktif', reportData.activeEmployees]
+    ];
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(summarySheet), 'Ringkasan');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `laporan_bulanan_${selectedMonth}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Sheet 2: Data Harian
+    if (reportData.monthlyRecords?.length) {
+      const dailyData = [
+        ['Tanggal', 'Nama', 'Role', 'Gaji Diterima', 'Bonus', 'Potongan'],
+        ...reportData.monthlyRecords.map((record) => {
+          const emp = businessData.employees.find(e => e.id === record.employeeId);
+          return [
+            record.date,
+            emp?.name || 'Unknown',
+            emp?.role || 'Unknown',
+            record.gajiDiterima || 0,
+            record.bonusTotal || 0,
+            record.potongan || 0
+          ];
+        })
+      ];
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(dailyData), 'Data Harian');
+    }
+
+    // Sheet 3: Gaji per Orang
+    if (reportData.perEmployeeSalaries?.length) {
+      const salaryData = [
+        ['Nama', 'Role', 'Total Gaji', 'Bonus', 'Potongan', 'Keterangan'],
+        ...reportData.perEmployeeSalaries.map(emp => [
+          emp.name,
+          emp.role,
+          emp.gaji,
+          emp.bonus,
+          emp.potongan,
+          emp.role === 'Owner' ? 'Owner' : (emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR')
+        ])
+      ];
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(salaryData), 'Gaji Per Orang');
+    }
+
+    // Sheet 4: Transaksi
+    if (reportData.monthlyTransactions?.length) {
+      const transactionData = [
+        ['Tanggal', 'Jenis', 'Deskripsi', 'Nominal'],
+        ...reportData.monthlyTransactions.map(t => [
+          t.date,
+          t.type,
+          t.description,
+          t.amount
+        ])
+      ];
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(transactionData), 'Transaksi');
+    }
+
+    // Tulis file
+    XLSX.writeFile(workbook, `Laporan_Bulanan_${selectedMonth}.xlsx`);
+  } catch (error) {
+    console.error('Gagal ekspor ke Excel:', error);
+    alert('Gagal mengekspor laporan bulanan.');
   }
 };
 
