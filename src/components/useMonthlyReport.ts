@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { exportMonthlyReportToExcel } from '../utils/dataManager';
+
 // Trigger update for PR
 export interface Service {
   id: string;
@@ -188,91 +190,18 @@ export function useMonthlyReport(businessData: BusinessData) {
     setShowExport(true);
   };
 
-  const handleExport = async () => {
-  if (!reportData) {
-    toast.error('No data to export');
-    return;
-  }
-  try {
-    const XLSX = (await import('xlsx')).default;
-    const workbook = XLSX.utils.book_new();
-
-    const summaryData = [
-      ['LAPORAN BULANAN', selectedMonth],
-      [''],
-      ['RINGKASAN'],
-      ['Total Pendapatan', reportData.totalRevenue],
-      ['Total Pengeluaran', reportData.totalExpenses],
-      ['Total Gaji Karyawan', reportData.totalEmployeeSalaries],
-      ['Total Gaji Owner', reportData.ownerSalary],
-      ['Total Tabungan Owner', reportData.ownerSavings],
-      ['Total Product Revenue', reportData.totalProductRevenue],
-      ['Laba Bersih', reportData.netProfit],
-      [''],
-      ['AKTIVITAS'],
-      ['Hari Aktif', reportData.activeDays],
-      ['Karyawan Aktif', reportData.activeEmployees]
-    ];
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan Bulanan');
-
-    // Data Harian
-    if (reportData.monthlyRecords.length > 0) {
-      const dailyData = [
-        ['Tanggal', 'Karyawan', 'Role', 'Gaji Diterima', 'Bonus', 'Potongan'],
-        ...reportData.monthlyRecords.map((record) => {
-          const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
-          return [
-            record.date,
-            employee?.name || 'Unknown',
-            employee?.role || 'Unknown',
-            record.gajiDiterima || 0,
-            record.bonusTotal || 0,
-            record.potongan || 0
-          ];
-        })
-      ];
-      const dailySheet = XLSX.utils.aoa_to_sheet(dailyData);
-      XLSX.utils.book_append_sheet(workbook, dailySheet, 'Data Harian');
+  const handleExport = () => {
+    if (!reportData) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
     }
 
-    // Gaji per orang
-    if (reportData.perEmployeeSalaries.length > 0) {
-      const salaryData = [
-        ['Nama', 'Role', 'Total Gaji', 'Bonus', 'Potongan', 'Keterangan'],
-        ...reportData.perEmployeeSalaries.map((emp) => [
-          emp.name,
-          emp.role,
-          emp.role === 'Owner' ? reportData.ownerSalary : emp.gaji,
-          emp.bonus,
-          emp.potongan,
-          emp.role === 'Owner' ? 'Owner' : (emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR')
-        ])
-      ];
-      const salarySheet = XLSX.utils.aoa_to_sheet(salaryData);
-      XLSX.utils.book_append_sheet(workbook, salarySheet, 'GajiPerOrang');
-    }
-
-    // Transaksi
-    if (reportData.monthlyTransactions.length > 0) {
-      const transactionData = [
-        ['Tanggal', 'Jenis', 'Deskripsi', 'Nominal'],
-        ...reportData.monthlyTransactions.map((transaction) => [
-          transaction.date,
-          transaction.type,
-          transaction.description,
-          transaction.amount
-        ])
-      ];
-      const transactionSheet = XLSX.utils.aoa_to_sheet(transactionData);
-      XLSX.utils.book_append_sheet(workbook, transactionSheet, 'Transaksi');
-    }
-
-      XLSX.writeFile(workbook, `Laporan_Bulanan_${selectedMonth}.xlsx`);
-      toast.success('Monthly report exported successfully!');
+    try {
+      exportMonthlyReportToExcel(reportData, businessData, selectedMonth);
+      toast.success('Berhasil ekspor laporan bulanan ke Excel');
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
-      toast.error('Failed to export to Excel');
+      console.error('Gagal ekspor:', error);
+      toast.error('Gagal ekspor ke Excel');
     }
   };
 

@@ -135,6 +135,47 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
     document.body.removeChild(link);
   }
 };
+export const exportMonthlyReportToExcel = (reportData, businessData, selectedMonth) => {
+  if (!reportData) {
+    alert('No data to export');
+    return;
+  }
+
+  const summarySheet = [
+    ['Laporan Bulanan', selectedMonth],
+    [],
+    ['Ringkasan'],
+    ['Total Pendapatan', reportData.totalRevenue],
+    ['Total Pengeluaran', reportData.totalExpenses],
+    ['Total Gaji Karyawan', reportData.totalEmployeeSalaries],
+    ['Total Gaji Owner', reportData.ownerSalary],
+    ['Total Tabungan Owner', reportData.ownerSavings],
+    ['Total Product Revenue', reportData.totalProductRevenue],
+    ['Laba Bersih', reportData.netProfit],
+    [],
+    ['Aktivitas'],
+    ['Hari Aktif', reportData.activeDays],
+    ['Karyawan Aktif', reportData.activeEmployees],
+  ];
+
+  const csvContent = summarySheet.map(row => 
+    row.map(item => (typeof item === 'string' ? `"${item}"` : item)).join(',')
+  ).join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `laporan_bulanan_${selectedMonth}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+};
+
 
 // Helper function to get employee name
 const getEmployeeName = (employeeId, businessData) => {
