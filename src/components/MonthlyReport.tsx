@@ -1,20 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Calendar, Download, FileText, DollarSign, Users, PiggyBank, TrendingUp, ShoppingCart } from 'lucide-react';
 import { formatCurrency } from '../utils/dataManager';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-
-interface BusinessData {
-  services: any[];
-  employees: any[];
-  dailyRecords: Record<string, any>;
-  transactions: Record<string, any>;
-  productSales?: Record<string, any>;
-}
-
-interface MonthlyReportProps {
-  businessData: BusinessData;
-}
 
 interface PerEmployeeSalary {
   employeeId: string;
@@ -23,6 +10,15 @@ interface PerEmployeeSalary {
   gaji: number;
   bonus: number;
   potongan: number;
+}
+
+interface OwnerBreakdown {
+  ownerServiceRevenue: number;
+  ownerBonus: number;
+  ownerShareFromKaryawan: number;
+  uangHadirKaryawan: number;
+  tabunganHarian: number;
+  finalOwnerSalary: number;
 }
 
 interface ReportData {
@@ -41,277 +37,29 @@ interface ReportData {
   monthlyProductSales: any[];
   monthlyTransactions: any[];
   perEmployeeSalaries: PerEmployeeSalary[];
-  ownerData: any;
+  ownerBreakdown?: OwnerBreakdown;
 }
 
-const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [showExport, setShowExport] = useState(false);
+interface MonthlyReportUIProps {
+  reportData: ReportData | null;
+  selectedMonth: string;
+  setSelectedMonth: (val: string) => void;
+  onCalculate: () => void;
+  onExport: () => void;
+  showExport: boolean;
+}
 
-  const getEmployeeRole = (employeeId: string) => {
-    const employee = businessData.employees?.find(emp => emp.id === employeeId);
-    return employee?.role || 'Unknown';
-  };
-
-  const getEmployeeName = (employeeId: string) => {
-    const employee = businessData.employees?.find(emp => emp.id === employeeId);
-    return employee?.name || 'Unknown';
-  };
-
-  const calculatePerEmployeeSalaries = (monthlyRecords: any[]): PerEmployeeSalary[] => {
-    const employeeSalaries: Record<string, PerEmployeeSalary> = {};
-
-    monthlyRecords.forEach(record => {
-      const employeeId = record.employeeId;
-      const employee = businessData.employees?.find(emp => emp.id === employeeId);
-      
-      if (!employeeSalaries[employeeId]) {
-        employeeSalaries[employeeId] = {
-          employeeId,
-          name: employee?.name || 'Unknown',
-          role: employee?.role || 'Unknown',
-          gaji: 0,
-          bonus: 0,
-          potongan: 0
-        };
-      }
-
-      // Use saved data from daily records - no recalculation
-      employeeSalaries[employeeId].gaji += (record.gajiDiterima || 0);
-      employeeSalaries[employeeId].bonus += (record.bonusTotal || 0);
-      employeeSalaries[employeeId].potongan += (record.potongan || 0);
-    });
-
-    return Object.values(employeeSalaries);
-  };
-
-  const calculateMonthlyReport = () => {
-    const [year, month] = selectedMonth.split('-');
-    const monthStart = `${year}-${month}-01`;
-    const monthEnd = `${year}-${month}-31`;
-
-    // Filter daily records for the selected month
-    const monthlyRecords = Object.values(businessData.dailyRecords || {})
-      .filter(record => record.date >= monthStart && record.date <= monthEnd);
-
-    // Filter transactions for the selected month
-    const monthlyTransactions = Object.values(businessData.transactions || {})
-      .filter(transaction => transaction.date >= monthStart && transaction.date <= monthEnd);
-
-    // Filter product sales for the selected month
-    const monthlyProductSales = Object.values(businessData.productSales || {})
-      .filter(sale => sale.date >= monthStart && sale.date <= monthEnd);
-
-    // Calculate totals using ONLY saved data from dailyRecords
-    const totalGajiKaryawan = monthlyRecords
-      .filter(r => getEmployeeRole(r.employeeId) === 'Karyawan')
-      .reduce((sum, r) => sum + (r.gajiDiterima || 0), 0);
-
-    const totalGajiOwner = monthlyRecords
-      .filter(r => getEmployeeRole(r.employeeId) === 'Owner')
-      .reduce((sum, r) => sum + (r.gajiDiterima || 0), 0);
-
-    const totalBonus = monthlyRecords.reduce((sum, r) => sum + (r.bonusTotal || 0), 0);
-
-    // Calculate tabungan owner from potongan field only
-    const totalTabunganOwner = monthlyRecords
-      .filter(r => r.potongan && r.potongan > 0)
-      .reduce((sum, r) => sum + (r.potongan || 0), 0);
-
-    // Calculate revenue from services (for reference only - not for salary calculation)
-    const totalRevenue = monthlyRecords.reduce((sum, record) => {
-      const recordTotal = Object.entries(record.services || {})
-        .filter(([_, quantity]) => Number(quantity) > 0)
-        .reduce((recordSum, [serviceId, quantity]) => {
-          const service = businessData.services?.find(s => s.id === serviceId);
-          const servicePrice = Number(service?.price) || 0;
-          const serviceQuantity = Number(quantity) || 0;
-          return recordSum + (servicePrice * serviceQuantity);
-        }, 0);
-      return sum + recordTotal;
-    }, 0);
-
-    // Calculate income and expenses from transactions
-    const income = monthlyTransactions
-      .filter(t => t.type === 'Pemasukan')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    const expenses = monthlyTransactions
-      .filter(t => t.type === 'Pengeluaran')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-
-    // Calculate product sales revenue
-    const totalProductRevenue = monthlyProductSales.reduce((sum, sale) => sum + sale.total, 0);
-
-    // Calculate activity stats
-    const activeDays = new Set(monthlyRecords.map(record => record.date)).size;
-    const activeEmployees = new Set(monthlyRecords.map(record => record.employeeId)).size;
-
-    // Net profit = Total revenue + Income + Product revenue - Employee salaries - Owner salary - Expenses
-    const netProfit = totalRevenue + income + totalProductRevenue - totalGajiKaryawan - Math.max(0, totalGajiOwner) - expenses;
-
-    // Calculate per employee salaries
-    const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
-
-    // Calculate breakdown for display purposes
-    const ownerRecords = monthlyRecords.filter(r => getEmployeeRole(r.employeeId) === 'Owner');
-    const employeeRecords = monthlyRecords.filter(r => getEmployeeRole(r.employeeId) === 'Karyawan');
-    
-    const ownerRevenue = ownerRecords.reduce((sum, record) => {
-      const recordTotal = Object.entries(record.services || {})
-        .filter(([_, quantity]) => Number(quantity) > 0)
-        .reduce((recordSum, [serviceId, quantity]) => {
-          const service = businessData.services?.find(s => s.id === serviceId);
-          const servicePrice = Number(service?.price) || 0;
-          const serviceQuantity = Number(quantity) || 0;
-          return recordSum + (servicePrice * serviceQuantity);
-        }, 0);
-      return sum + recordTotal;
-    }, 0);
-
-    const ownerBonus = ownerRecords.reduce((sum, r) => sum + (r.bonusTotal || 0), 0);
-    
-    const employeeRevenue = employeeRecords.reduce((sum, record) => {
-      const recordTotal = Object.entries(record.services || {})
-        .filter(([_, quantity]) => Number(quantity) > 0)
-        .reduce((recordSum, [serviceId, quantity]) => {
-          const service = businessData.services?.find(s => s.id === serviceId);
-          const servicePrice = Number(service?.price) || 0;
-          const serviceQuantity = Number(quantity) || 0;
-          return recordSum + (servicePrice * serviceQuantity);
-        }, 0);
-      return sum + recordTotal;
-    }, 0);
-
-    const totalEmployeeWorkingDays = employeeRecords.length;
-
-    const ownerData = {
-      ownerRevenue,
-      ownerBonus,
-      employeeRevenue,
-      totalEmployeeWorkingDays
-    };
-
-    const data: ReportData = {
-      totalRevenue,
-      totalExpenses: expenses,
-      totalEmployeeSalaries: totalGajiKaryawan,
-      ownerSavings: totalTabunganOwner,
-      totalBonuses: totalBonus,
-      totalProductRevenue,
-      netProfit,
-      activeDays,
-      activeEmployees,
-      ownerSalary: totalGajiOwner,
-      income,
-      monthlyRecords,
-      monthlyProductSales,
-      monthlyTransactions,
-      perEmployeeSalaries,
-      ownerData
-    };
-
-    setReportData(data);
-    setShowExport(true);
-  };
-
-  const exportToExcel = async () => {
-    if (!reportData || !reportData.monthlyRecords) {
-      toast.error('No data to export');
-      return;
-    }
-
-    try {
-      const XLSX = (await import('xlsx')).default;
-      const workbook = XLSX.utils.book_new();
-
-      // Summary sheet
-      const summaryData = [
-        ['LAPORAN BULANAN', selectedMonth],
-        [''],
-        ['RINGKASAN'],
-        ['Total Pendapatan', reportData.totalRevenue || 0],
-        ['Total Pengeluaran', reportData.totalExpenses || 0],
-        ['Total Gaji Karyawan', reportData.totalEmployeeSalaries || 0],
-        ['Total Gaji Owner', reportData.ownerSalary || 0],
-        ['Total Tabungan Owner', reportData.ownerSavings || 0],
-        ['Total Product Revenue', reportData.totalProductRevenue || 0],
-        ['Laba Bersih', reportData.netProfit || 0],
-        [''],
-        ['AKTIVITAS'],
-        ['Hari Aktif', reportData.activeDays || 0],
-        ['Karyawan Aktif', reportData.activeEmployees || 0]
-      ];
-
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan Bulanan');
-
-      // Daily records sheet
-      if (reportData.monthlyRecords && reportData.monthlyRecords.length > 0) {
-        const dailyData = [
-          ['Tanggal', 'Karyawan', 'Role', 'Gaji Diterima', 'Bonus', 'Potongan'],
-          ...reportData.monthlyRecords.map((record: any) => {
-            const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
-            return [
-              record.date || '',
-              employee?.name || 'Unknown',
-              employee?.role || 'Unknown',
-              record.gajiDiterima || 0,
-              record.bonusTotal || 0,
-              record.potongan || 0
-            ];
-          })
-        ];
-
-        const dailySheet = XLSX.utils.aoa_to_sheet(dailyData);
-        XLSX.utils.book_append_sheet(workbook, dailySheet, 'Data Harian');
-      }
-
-      // Gaji per orang sheet
-      if (reportData.perEmployeeSalaries && reportData.perEmployeeSalaries.length > 0) {
-        const salaryData = [
-          ['Nama', 'Role', 'Total Gaji', 'Bonus', 'Potongan', 'Keterangan'],
-          ...reportData.perEmployeeSalaries.map((emp: PerEmployeeSalary) => [
-            emp.name || 'Unknown',
-            emp.role || 'Unknown',
-            emp.gaji || 0,
-            emp.bonus || 0,
-            emp.potongan || 0,
-            emp.role === 'Owner' ? 'Owner' : (emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR')
-          ])
-        ];
-
-        const salarySheet = XLSX.utils.aoa_to_sheet(salaryData);
-        XLSX.utils.book_append_sheet(workbook, salarySheet, 'GajiPerOrang');
-      }
-
-      // Transactions sheet
-      if (reportData.monthlyTransactions && reportData.monthlyTransactions.length > 0) {
-        const transactionData = [
-          ['Tanggal', 'Jenis', 'Deskripsi', 'Nominal'],
-          ...reportData.monthlyTransactions.map((transaction: any) => [
-            transaction.date || '',
-            transaction.type || '',
-            transaction.description || '',
-            transaction.amount || 0
-          ])
-        ];
-
-        const transactionSheet = XLSX.utils.aoa_to_sheet(transactionData);
-        XLSX.utils.book_append_sheet(workbook, transactionSheet, 'Transaksi');
-      }
-
-      XLSX.writeFile(workbook, `Laporan_Bulanan_${selectedMonth}.xlsx`);
-      toast.success('Excel file exported successfully!');
-    } catch (error) {
-      console.error('Error exporting to Excel:', error);
-      toast.error('Failed to export to Excel');
-    }
-  };
-
-  // Calculate total salary paid to all employees from perEmployeeSalaries
-  const totalSalaryPaid = reportData?.perEmployeeSalaries?.reduce((sum, emp) => sum + (emp.gaji || 0), 0) || 0;
+const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
+  reportData,
+  selectedMonth,
+  setSelectedMonth,
+  onCalculate,
+  onExport,
+  showExport
+}) => {
+  const totalSalaryPaid = reportData
+    ? (reportData.totalEmployeeSalaries || 0) + (reportData.ownerSalary || 0)
+    : 0;
 
   const stats = [
     {
@@ -351,7 +99,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
           </div>
           {showExport && (
             <button
-              onClick={exportToExcel}
+              onClick={onExport}
               disabled={!reportData}
               className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -378,7 +126,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
             />
           </div>
           <button
-            onClick={calculateMonthlyReport}
+            onClick={onCalculate}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Hitung Rekap Bulanan
@@ -512,29 +260,29 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
           </div>
 
           {/* Owner Salary Breakdown */}
-          {reportData.ownerData && (
+          {reportData.ownerBreakdown && (
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Owner Salary Breakdown</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Owner Service Revenue:</span>
-                  <span className="font-medium">{formatCurrency(reportData.ownerData.ownerRevenue)}</span>
+                  <span className="font-medium">{formatCurrency(reportData.ownerBreakdown.ownerServiceRevenue)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Owner Bonus Services:</span>
-                  <span className="font-medium">{formatCurrency(reportData.ownerData.ownerBonus)}</span>
+                  <span className="font-medium">{formatCurrency(reportData.ownerBreakdown.ownerBonus)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">50% Employee Revenue:</span>
-                  <span className="font-medium">{formatCurrency(reportData.ownerData.employeeRevenue * 0.5)}</span>
+                  <span className="font-medium">{formatCurrency(reportData.ownerBreakdown.ownerShareFromKaryawan)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Daily Savings ({reportData.activeDays} days):</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(40000 * reportData.activeDays)}</span>
+                  <span className="text-gray-600">Daily Savings:</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(reportData.ownerBreakdown.tabunganHarian)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Employee Deductions ({reportData.ownerData.totalEmployeeWorkingDays} × 10k):</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(10000 * reportData.ownerData.totalEmployeeWorkingDays)}</span>
+                  <span className="text-gray-600">Employee Deductions:</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(reportData.ownerBreakdown.uangHadirKaryawan)}</span>
                 </div>
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center">
