@@ -1,7 +1,48 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
+export interface Service {
+  id: string;
+  name: string;
+  price: number;
+}
 
-export function useMonthlyReport(businessData) {
+export interface Employee {
+  id: string;
+  name: string;
+  role: 'Owner' | 'Karyawan';
+}
+
+export interface DailyRecord {
+  date: string;
+  employeeId: string;
+  gajiDiterima?: number;
+  bonusTotal?: number;
+  potongan?: number;
+  services?: Record<string, number>;
+}
+
+export interface Transaction {
+  date: string;
+  type: 'Pemasukan' | 'Pengeluaran';
+  amount: number;
+  description: string;
+}
+
+export interface ProductSale {
+  date: string;
+  total: number;
+}
+
+export interface BusinessData {
+  services: Service[];
+  employees: Employee[];
+  dailyRecords: Record<string, DailyRecord>;
+  transactions: Record<string, Transaction>;
+  productSales?: Record<string, ProductSale>;
+}
+
+
+export function useMonthlyReport(businessData: BusinessData) {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [reportData, setReportData] = useState(null);
   const [showExport, setShowExport] = useState(false);

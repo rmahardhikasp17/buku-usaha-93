@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, Download, FileText, DollarSign, Users, PiggyBank, TrendingUp, ShoppingCart } from 'lucide-react';
 import { formatCurrency } from '../utils/dataManager';
 import { Badge } from '@/components/ui/badge';
+import { useMonthlyReport } from './useMonthlyReport';
 
 interface PerEmployeeSalary {
   employeeId: string;
@@ -12,51 +13,17 @@ interface PerEmployeeSalary {
   potongan: number;
 }
 
-interface OwnerBreakdown {
-  ownerServiceRevenue: number;
-  ownerBonus: number;
-  ownerShareFromKaryawan: number;
-  uangHadirKaryawan: number;
-  tabunganHarian: number;
-  finalOwnerSalary: number;
-}
 
-interface ReportData {
-  totalRevenue: number;
-  totalExpenses: number;
-  totalEmployeeSalaries: number;
-  ownerSavings: number;
-  totalBonuses: number;
-  totalProductRevenue: number;
-  netProfit: number;
-  activeDays: number;
-  activeEmployees: number;
-  ownerSalary: number;
-  income: number;
-  monthlyRecords: any[];
-  monthlyProductSales: any[];
-  monthlyTransactions: any[];
-  perEmployeeSalaries: PerEmployeeSalary[];
-  ownerBreakdown?: OwnerBreakdown;
-}
+const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
+  const {
+    selectedMonth,
+    setSelectedMonth,
+    reportData,
+    calculateMonthlyReport,
+    handleExport,
+    showExport
+  } = useMonthlyReport(businessData);
 
-interface MonthlyReportUIProps {
-  reportData: ReportData | null;
-  selectedMonth: string;
-  setSelectedMonth: (val: string) => void;
-  onCalculate: () => void;
-  onExport: () => void;
-  showExport: boolean;
-}
-
-const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
-  reportData,
-  selectedMonth,
-  setSelectedMonth,
-  onCalculate,
-  onExport,
-  showExport
-}) => {
   const totalSalaryPaid = reportData
     ? (reportData.totalEmployeeSalaries || 0) + (reportData.ownerSalary || 0)
     : 0;
@@ -99,7 +66,7 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
           </div>
           {showExport && (
             <button
-              onClick={onExport}
+              onClick={handleExport}
               disabled={!reportData}
               className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -110,7 +77,7 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
         </div>
       </div>
 
-      {/* Filter Section */}
+      {/* Filter */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center space-x-4">
@@ -126,7 +93,7 @@ const MonthlyReport: React.FC<MonthlyReportUIProps> = ({
             />
           </div>
           <button
-            onClick={onCalculate}
+            onClick={calculateMonthlyReport}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Hitung Rekap Bulanan
