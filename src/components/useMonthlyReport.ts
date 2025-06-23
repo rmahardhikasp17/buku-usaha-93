@@ -194,10 +194,9 @@ export function useMonthlyReport(businessData: BusinessData) {
     return;
   }
   try {
-    const xlsxModule = await import('xlsx');
-    const XLSX = xlsxModule.default;
+    const XLSX = (await import('xlsx')).default;
     const workbook = XLSX.utils.book_new();
-    
+
     const summaryData = [
       ['LAPORAN BULANAN', selectedMonth],
       [''],
