@@ -66,13 +66,17 @@ const MonthlyReport = ({ businessData }) => {
       .filter(r => getEmployeeRole(r.employeeId) === 'Karyawan')
       .reduce((sum, r) => sum + (r.gajiDiterima || 0), 0);
 
+    // FIX 1: Pastikan nilai gajiDiterima diambil langsung dari record, bukan dihitung ulang
     const totalGajiOwner = monthlyRecords
       .filter(r => getEmployeeRole(r.employeeId) === 'Owner')
       .reduce((sum, r) => sum + (r.gajiDiterima || 0), 0);
 
     const totalBonus = monthlyRecords.reduce((sum, r) => sum + (r.bonusTotal || 0), 0);
 
-    const totalTabungan = monthlyRecords.reduce((sum, r) => sum + (r.potongan || 0), 0);
+    // FIX 2: Perbaiki total potongan (jangan dijumlah dari bonus)
+    const totalTabunganOwner = monthlyRecords
+      .filter(r => r.potongan)
+      .reduce((sum, r) => sum + (r.potongan || 0), 0);
 
     // Calculate revenue from services
     const totalRevenue = monthlyRecords.reduce((sum, record) => {
@@ -152,7 +156,7 @@ const MonthlyReport = ({ businessData }) => {
       totalRevenue,
       totalExpenses: expenses,
       totalEmployeeSalaries: totalGajiKaryawan,
-      ownerSavings: totalTabungan,
+      ownerSavings: totalTabunganOwner,
       totalBonuses: totalBonus,
       totalProductRevenue,
       netProfit,
@@ -231,7 +235,7 @@ const MonthlyReport = ({ businessData }) => {
             emp.gaji,
             emp.bonus,
             emp.potongan,
-            emp.gaji < 2000000 ? 'Belum UMR' : 'Sesuai UMR'
+            emp.role === 'Owner' ? 'Owner' : (emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR')
           ])
         ];
 
@@ -479,7 +483,7 @@ const MonthlyReport = ({ businessData }) => {
             </div>
           )}
 
-          {/* Employee Salaries Section - New */}
+          {/* Employee Salaries Section - Updated with Fix 3 */}
           {reportData && reportData.perEmployeeSalaries && (
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">💼 Rangkuman Gaji Karyawan Bulan Ini</h3>
@@ -496,13 +500,20 @@ const MonthlyReport = ({ businessData }) => {
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="font-bold text-gray-800">{formatCurrency(emp.gaji)}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        emp.gaji >= 2000000 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR'}
-                      </span>
+                      {/* FIX 3: Perbaiki badge UMR, khusus Owner tampilkan badge '✅ Owner' */}
+                      {emp.role === 'Owner' ? (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          ✅ Owner
+                        </span>
+                      ) : (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          emp.gaji >= 2000000 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
