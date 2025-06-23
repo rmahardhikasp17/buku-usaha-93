@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { exportMonthlyReportToExcel } from '../utils/dataManager';
 
-
-// Trigger update for PR
 export interface Service {
   id: string;
   name: string;
@@ -160,8 +158,6 @@ export function useMonthlyReport(businessData: BusinessData) {
     const netProfit = totalRevenue + income + totalProductRevenue - totalGajiKaryawan - finalOwnerSalary - expenses - totalTabunganOwner;
 
     const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
-
-    // Perbaikan: pastikan gaji owner diset dari finalOwnerSalary
     perEmployeeSalaries.forEach(emp => {
       if (emp.role === 'Owner') {
         emp.gaji = finalOwnerSalary;
@@ -191,21 +187,20 @@ export function useMonthlyReport(businessData: BusinessData) {
     setShowExport(true);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!reportData) {
       toast.error('Tidak ada data untuk diekspor');
       return;
     }
 
     try {
-      exportMonthlyReportToExcel(reportData, businessData, selectedMonth);
+      await exportMonthlyReportToExcel(reportData, businessData, selectedMonth);
       toast.success('Berhasil ekspor laporan bulanan ke Excel');
     } catch (error) {
       console.error('Gagal ekspor:', error);
       toast.error('Gagal ekspor ke Excel');
     }
   };
-
 
   return {
     selectedMonth,
