@@ -36,6 +36,7 @@ const MonthlyReport = ({ businessData }) => {
         };
       }
 
+      // Use saved data from daily records - no recalculation
       employeeSalaries[employeeId].gaji += (record.gajiDiterima || 0);
       employeeSalaries[employeeId].bonus += (record.bonusTotal || 0);
       employeeSalaries[employeeId].potongan += (record.potongan || 0);
@@ -61,24 +62,23 @@ const MonthlyReport = ({ businessData }) => {
     const monthlyProductSales = Object.values(businessData.productSales || {})
       .filter(sale => sale.date >= monthStart && sale.date <= monthEnd);
 
-    // Use saved data from dailyRecords
+    // Calculate totals using ONLY saved data from dailyRecords
     const totalGajiKaryawan = monthlyRecords
       .filter(r => getEmployeeRole(r.employeeId) === 'Karyawan')
       .reduce((sum, r) => sum + (r.gajiDiterima || 0), 0);
 
-    // FIX 1: Pastikan nilai gajiDiterima diambil langsung dari record, bukan dihitung ulang
     const totalGajiOwner = monthlyRecords
       .filter(r => getEmployeeRole(r.employeeId) === 'Owner')
       .reduce((sum, r) => sum + (r.gajiDiterima || 0), 0);
 
     const totalBonus = monthlyRecords.reduce((sum, r) => sum + (r.bonusTotal || 0), 0);
 
-    // FIX 2: Perbaiki total potongan (jangan dijumlah dari bonus)
+    // Calculate tabungan owner from potongan field only
     const totalTabunganOwner = monthlyRecords
-      .filter(r => r.potongan)
+      .filter(r => r.potongan && r.potongan > 0)
       .reduce((sum, r) => sum + (r.potongan || 0), 0);
 
-    // Calculate revenue from services
+    // Calculate revenue from services (for reference only - not for salary calculation)
     const totalRevenue = monthlyRecords.reduce((sum, record) => {
       const recordTotal = Object.entries(record.services || {})
         .filter(([_, quantity]) => Number(quantity) > 0)
@@ -113,7 +113,7 @@ const MonthlyReport = ({ businessData }) => {
     // Calculate per employee salaries
     const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
 
-    // Calculate owner data breakdown
+    // Calculate breakdown for display purposes
     const ownerRecords = monthlyRecords.filter(r => getEmployeeRole(r.employeeId) === 'Owner');
     const employeeRecords = monthlyRecords.filter(r => getEmployeeRole(r.employeeId) === 'Karyawan');
     
@@ -166,6 +166,7 @@ const MonthlyReport = ({ businessData }) => {
       income,
       monthlyRecords,
       monthlyProductSales,
+      monthlyTransactions,
       perEmployeeSalaries,
       ownerData
     };
@@ -192,6 +193,7 @@ const MonthlyReport = ({ businessData }) => {
         ['Total Pendapatan', reportData.totalRevenue],
         ['Total Pengeluaran', reportData.totalExpenses],
         ['Total Gaji Karyawan', reportData.totalEmployeeSalaries],
+        ['Total Gaji Owner', reportData.ownerSalary],
         ['Total Tabungan Owner', reportData.ownerSavings],
         ['Total Product Revenue', reportData.totalProductRevenue],
         ['Laba Bersih', reportData.netProfit],
@@ -225,7 +227,7 @@ const MonthlyReport = ({ businessData }) => {
         XLSX.utils.book_append_sheet(workbook, dailySheet, 'Data Harian');
       }
 
-      // Gaji per orang sheet
+      // Gaji per orang sheet - NEW
       if (reportData.perEmployeeSalaries.length > 0) {
         const salaryData = [
           ['Nama', 'Role', 'Total Gaji', 'Bonus', 'Potongan', 'Keterangan'],
@@ -244,22 +246,15 @@ const MonthlyReport = ({ businessData }) => {
       }
 
       // Transactions sheet
-      if (reportData.monthlyRecords && reportData.monthlyRecords.length > 0) {
+      if (reportData.monthlyTransactions && reportData.monthlyTransactions.length > 0) {
         const transactionData = [
           ['Tanggal', 'Jenis', 'Deskripsi', 'Nominal'],
-          ...Object.values(businessData.transactions || {})
-            .filter(transaction => {
-              const [year, month] = selectedMonth.split('-');
-              const monthStart = `${year}-${month}-01`;
-              const monthEnd = `${year}-${month}-31`;
-              return transaction.date >= monthStart && transaction.date <= monthEnd;
-            })
-            .map((transaction) => [
-              transaction.date,
-              transaction.type,
-              transaction.description,
-              transaction.amount
-            ])
+          ...reportData.monthlyTransactions.map((transaction) => [
+            transaction.date,
+            transaction.type,
+            transaction.description,
+            transaction.amount
+          ])
         ];
 
         const transactionSheet = XLSX.utils.aoa_to_sheet(transactionData);
@@ -483,7 +478,7 @@ const MonthlyReport = ({ businessData }) => {
             </div>
           )}
 
-          {/* Employee Salaries Section - Updated with Fix 3 */}
+          {/* Employee Salaries Section */}
           {reportData && reportData.perEmployeeSalaries && (
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">💼 Rangkuman Gaji Karyawan Bulan Ini</h3>
@@ -494,13 +489,24 @@ const MonthlyReport = ({ businessData }) => {
                       <span className="text-lg">
                         {emp.role === 'Owner' ? '👤' : '🧑‍🔧'}
                       </span>
-                      <span className="font-medium text-gray-800">
-                        {emp.name} ({emp.role})
-                      </span>
+                      <div>
+                        <span className="font-medium text-gray-800">
+                          {emp.name} ({emp.role})
+                        </span>
+                        {emp.bonus > 0 && (
+                          <div className="text-sm text-gray-600">
+                            Bonus: {formatCurrency(emp.bonus)}
+                          </div>
+                        )}
+                        {emp.potongan > 0 && (
+                          <div className="text-sm text-gray-600">
+                            Potongan: {formatCurrency(emp.potongan)}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="font-bold text-gray-800">{formatCurrency(emp.gaji)}</span>
-                      {/* FIX 3: Perbaiki badge UMR, khusus Owner tampilkan badge '✅ Owner' */}
                       {emp.role === 'Owner' ? (
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                           ✅ Owner
@@ -511,7 +517,7 @@ const MonthlyReport = ({ businessData }) => {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR'}
+                          {emp.gaji >= 2000000 ? '✅ Sesuai UMR' : '🟥 Belum UMR'}
                         </span>
                       )}
                     </div>
