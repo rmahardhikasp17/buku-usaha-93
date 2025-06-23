@@ -15,7 +15,7 @@ import {
 import { formatCurrency } from '../utils/dataManager';
 import { Badge } from '@/components/ui/badge';
 import { useMonthlyReport } from './useMonthlyReport';
-// Trigger update for PR
+
 interface PerEmployeeSalary {
   employeeId: string;
   name: string;
@@ -135,24 +135,91 @@ const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
       </div>
 
       {reportData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-12 h-12 ${stat.color.replace('bg-', 'bg-').replace('-500', '-100')} rounded-lg flex items-center justify-center`}>
-                    <Icon className={stat.color.replace('bg-', 'text-')} size={24} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+        <>
+          {/* Ringkasan Statistik */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-12 h-12 ${stat.color.replace('bg-', 'bg-').replace('-500', '-100')} rounded-lg flex items-center justify-center`}>
+                      <Icon className={stat.color.replace('bg-', 'text-')} size={24} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">{stat.title}</p>
+                      <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Breakdown Owner */}
+          {reportData.ownerBreakdown && (
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Detail Gaji Owner</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Pendapatan Layanan Pemilik:</span>
+                  <span>{formatCurrency(reportData.ownerBreakdown.ownerServiceRevenue)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Layanan Bonus Pemilik:</span>
+                  <span>{formatCurrency(reportData.ownerBreakdown.ownerBonus)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Pendapatan Karyawan 50%:</span>
+                  <span>{formatCurrency(reportData.ownerBreakdown.ownerShareFromKaryawan)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Penghematan Harian:</span>
+                  <span className="text-red-500">-{formatCurrency(reportData.ownerBreakdown.tabunganHarian)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Potongan Karyawan:</span>
+                  <span className="text-red-500">-{formatCurrency(reportData.ownerBreakdown.uangHadirKaryawan)}</span>
+                </div>
+                <div className="border-t pt-2 font-medium text-gray-800 flex justify-between">
+                  <span>Gaji Akhir Pemilik:</span>
+                  <span className="text-green-600 font-bold">{formatCurrency(reportData.ownerSalary)}</span>
+                </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          )}
+
+          {/* Rangkuman Gaji Karyawan */}
+          {reportData.perEmployeeSalaries && reportData.perEmployeeSalaries.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">💼 Rangkuman Gaji Karyawan Bulan Ini</h3>
+              <div className="space-y-3">
+                {reportData.perEmployeeSalaries.map((emp: PerEmployeeSalary, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-lg">{emp.role === 'Owner' ? '👤' : '🧑‍🔧'}</span>
+                      <div>
+                        <span className="font-medium text-gray-800">{emp.name} ({emp.role})</span>
+                        {emp.bonus > 0 && <div className="text-sm text-gray-600">Bonus: {formatCurrency(emp.bonus)}</div>}
+                        {emp.potongan > 0 && <div className="text-sm text-gray-600">Potongan: {formatCurrency(emp.potongan)}</div>}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="font-bold text-gray-800">{formatCurrency(emp.gaji)}</span>
+                      <Badge className={emp.role === 'Owner' ? 'bg-gray-100 text-gray-700' : (emp.gaji >= 2000000 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
+                        {emp.role === 'Owner' ? '✅ Owner' : (emp.gaji >= 2000000 ? '✅ Sesuai UMR' : '❌ Belum UMR')}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                <div className="border-t pt-3 mt-3 flex justify-between">
+                  <span className="font-semibold text-gray-800">🧾 Total Gaji Dibayarkan :</span>
+                  <span className="font-bold text-xl text-green-600">{formatCurrency(totalSalaryPaid)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {!reportData && (
