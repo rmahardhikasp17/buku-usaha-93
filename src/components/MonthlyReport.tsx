@@ -15,7 +15,7 @@ import {
 import { formatCurrency } from '../utils/dataManager';
 import { Badge } from '@/components/ui/badge';
 import { useMonthlyReport } from './useMonthlyReport';
-
+// Trigger update for PR
 interface PerEmployeeSalary {
   employeeId: string;
   name: string;
