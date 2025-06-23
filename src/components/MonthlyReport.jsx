@@ -109,6 +109,45 @@ const MonthlyReport = ({ businessData }) => {
     // Calculate per employee salaries
     const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
 
+    // Calculate owner data breakdown
+    const ownerRecords = monthlyRecords.filter(r => getEmployeeRole(r.employeeId) === 'Owner');
+    const employeeRecords = monthlyRecords.filter(r => getEmployeeRole(r.employeeId) === 'Karyawan');
+    
+    const ownerRevenue = ownerRecords.reduce((sum, record) => {
+      const recordTotal = Object.entries(record.services || {})
+        .filter(([_, quantity]) => Number(quantity) > 0)
+        .reduce((recordSum, [serviceId, quantity]) => {
+          const service = businessData.services?.find(s => s.id === serviceId);
+          const servicePrice = Number(service?.price) || 0;
+          const serviceQuantity = Number(quantity) || 0;
+          return recordSum + (servicePrice * serviceQuantity);
+        }, 0);
+      return sum + recordTotal;
+    }, 0);
+
+    const ownerBonus = ownerRecords.reduce((sum, r) => sum + (r.bonusTotal || 0), 0);
+    
+    const employeeRevenue = employeeRecords.reduce((sum, record) => {
+      const recordTotal = Object.entries(record.services || {})
+        .filter(([_, quantity]) => Number(quantity) > 0)
+        .reduce((recordSum, [serviceId, quantity]) => {
+          const service = businessData.services?.find(s => s.id === serviceId);
+          const servicePrice = Number(service?.price) || 0;
+          const serviceQuantity = Number(quantity) || 0;
+          return recordSum + (servicePrice * serviceQuantity);
+        }, 0);
+      return sum + recordTotal;
+    }, 0);
+
+    const totalEmployeeWorkingDays = employeeRecords.length;
+
+    const ownerData = {
+      ownerRevenue,
+      ownerBonus,
+      employeeRevenue,
+      totalEmployeeWorkingDays
+    };
+
     const data = {
       totalRevenue,
       totalExpenses: expenses,
@@ -123,7 +162,8 @@ const MonthlyReport = ({ businessData }) => {
       income,
       monthlyRecords,
       monthlyProductSales,
-      perEmployeeSalaries
+      perEmployeeSalaries,
+      ownerData
     };
 
     setReportData(data);
@@ -403,39 +443,41 @@ const MonthlyReport = ({ businessData }) => {
           )}
 
           {/* Owner Salary Breakdown */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Owner Salary Breakdown</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Owner Service Revenue:</span>
-                <span className="font-medium">{formatCurrency(reportData.ownerData.ownerRevenue)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Owner Bonus Services:</span>
-                <span className="font-medium">{formatCurrency(reportData.ownerData.ownerBonus)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">50% Employee Revenue:</span>
-                <span className="font-medium">{formatCurrency(reportData.ownerData.employeeRevenue * 0.5)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Daily Savings ({reportData.activeDays} days):</span>
-                <span className="font-medium text-red-600">-{formatCurrency(40000 * reportData.activeDays)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Employee Deductions ({reportData.ownerData.totalEmployeeWorkingDays} × 10k):</span>
-                <span className="font-medium text-red-600">-{formatCurrency(10000 * reportData.ownerData.totalEmployeeWorkingDays)}</span>
-              </div>
-              <div className="border-t pt-3 mt-3">
+          {reportData.ownerData && (
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Owner Salary Breakdown</h3>
+              <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-800">Owner Final Salary:</span>
-                  <span className={`font-bold text-xl ${reportData.ownerSalary >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(reportData.ownerSalary)}
-                  </span>
+                  <span className="text-gray-600">Owner Service Revenue:</span>
+                  <span className="font-medium">{formatCurrency(reportData.ownerData.ownerRevenue)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Owner Bonus Services:</span>
+                  <span className="font-medium">{formatCurrency(reportData.ownerData.ownerBonus)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">50% Employee Revenue:</span>
+                  <span className="font-medium">{formatCurrency(reportData.ownerData.employeeRevenue * 0.5)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Daily Savings ({reportData.activeDays} days):</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(40000 * reportData.activeDays)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Employee Deductions ({reportData.ownerData.totalEmployeeWorkingDays} × 10k):</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(10000 * reportData.ownerData.totalEmployeeWorkingDays)}</span>
+                </div>
+                <div className="border-t pt-3 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-800">Owner Final Salary:</span>
+                    <span className={`font-bold text-xl ${reportData.ownerSalary >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(reportData.ownerSalary)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Employee Salaries Section - New */}
           {reportData && reportData.perEmployeeSalaries && (
