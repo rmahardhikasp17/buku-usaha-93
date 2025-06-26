@@ -27,7 +27,7 @@ export const getTodayTotal = (businessData) => {
   const today = new Date().toISOString().split('T')[0];
   const todayRecords = Object.values(businessData.dailyRecords)
     .filter(record => record.date === today);
-  
+
   return todayRecords.reduce((sum, record) => sum + record.total, 0);
 };
 
@@ -40,10 +40,9 @@ export const exportToCSV = (data, filename) => {
   const headers = Object.keys(data[0]);
   const csvContent = [
     headers.join(','),
-    ...data.map(row => 
+    ...data.map(row =>
       headers.map(header => {
         const value = row[header];
-        // Escape commas and quotes in CSV
         if (typeof value === 'string' && value.includes(',')) {
           return `"${value.replace(/"/g, '""')}"`;
         }
@@ -54,7 +53,7 @@ export const exportToCSV = (data, filename) => {
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
-  
+
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -72,37 +71,26 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
     return;
   }
 
-  // Ambil semua layanan dari data bisnis
   const allServices = businessData.services || [];
-
-  // Buat header CSV: Date, Employee Name, [Service Names], Total Income
   const serviceHeaders = allServices.map(service => service.name);
   const headers = ['Date', 'Employee Name', ...serviceHeaders, 'Total Income'];
 
-  // Proses setiap record harian menjadi satu baris data
   const exportData = dailyRecords.map(record => {
     const employeeName = getEmployeeName(record.employeeId, businessData);
-
-    let totalIncome = 0;
     const row = {
       'Date': record.date,
-      'Employee Name': employeeName
+      'Employee Name': employeeName,
+      'Total Income': record.gajiDiterima || 0  // ✅ Ambil langsung dari gaji yang sudah dihitung
     };
 
     serviceHeaders.forEach(serviceName => {
       const service = allServices.find(s => s.name === serviceName);
-      const quantity = service ? (record.services?.[service.id] || 0) : 0;
-      const income = quantity * (service?.price || 0);
-      row[serviceName] = quantity;
-      totalIncome += income;
+      row[serviceName] = service ? (record.services?.[service.id] || 0) : 0;
     });
-
-    row['Total Income'] = totalIncome;
 
     return row;
   });
 
-  // Konversi ke format CSV
   const csvContent = [
     headers.join(','),
     ...exportData.map(row =>
@@ -117,7 +105,6 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
     )
   ].join('\n');
 
-  // Buat dan unduh file CSV
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   if (link.download !== undefined) {
@@ -131,7 +118,7 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
   }
 };
 
-// Fungsi bantu untuk mendapatkan nama karyawan
+// Fungsi bantu
 const getEmployeeName = (employeeId, businessData) => {
   const employee = businessData.employees.find(emp => emp.id === employeeId);
   return employee ? employee.name : 'Unknown Employee';
