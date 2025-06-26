@@ -72,47 +72,43 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
     return;
   }
 
-  // Get all unique services from the business data
+  // Ambil semua layanan dari data bisnis
   const allServices = businessData.services || [];
-  
-  // Create headers: Date, Employee Name, [Service Names...], Total Income
+
+  // Buat header CSV: Date, Employee Name, [Service Names], Total Income
   const serviceHeaders = allServices.map(service => service.name);
   const headers = ['Date', 'Employee Name', ...serviceHeaders, 'Total Income'];
-  
-  // Process each daily record into a row
+
+  // Proses setiap record harian menjadi satu baris data
   const exportData = dailyRecords.map(record => {
     const employeeName = getEmployeeName(record.employeeId, businessData);
-    
-    // Create the row data
+
+    let totalIncome = 0;
     const row = {
       'Date': record.date,
-      'Employee Name': employeeName,
-      'Total Income': record.total
+      'Employee Name': employeeName
     };
-    
-    // Add service quantities to the row
+
     serviceHeaders.forEach(serviceName => {
       const service = allServices.find(s => s.name === serviceName);
-      if (service) {
-        const quantity = record.services[service.id] || 0;
-        row[serviceName] = quantity;
-      } else {
-        row[serviceName] = 0;
-      }
+      const quantity = service ? (record.services?.[service.id] || 0) : 0;
+      const income = quantity * (service?.price || 0);
+      row[serviceName] = quantity;
+      totalIncome += income;
     });
-    
+
+    row['Total Income'] = totalIncome;
+
     return row;
   });
 
-  // Convert to CSV format
+  // Konversi ke format CSV
   const csvContent = [
     headers.join(','),
-    ...exportData.map(row => 
+    ...exportData.map(row =>
       headers.map(header => {
         const value = row[header] || 0;
-        // Clean the value to avoid CSV formatting issues
         if (typeof value === 'string') {
-          // Remove any commas, quotes, and line breaks that could break CSV
           const cleanValue = value.replace(/[,"\n\r]/g, ' ').trim();
           return `"${cleanValue}"`;
         }
@@ -121,10 +117,9 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
     )
   ].join('\n');
 
-  // Create and download the file
+  // Buat dan unduh file CSV
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
-  
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -136,7 +131,7 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
   }
 };
 
-// Helper function to get employee name
+// Fungsi bantu untuk mendapatkan nama karyawan
 const getEmployeeName = (employeeId, businessData) => {
   const employee = businessData.employees.find(emp => emp.id === employeeId);
   return employee ? employee.name : 'Unknown Employee';
