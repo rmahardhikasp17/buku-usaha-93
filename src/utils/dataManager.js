@@ -65,7 +65,14 @@ export const exportToCSV = (data, filename) => {
   }
 };
 
-export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate) => {
+import * as XLSX from 'xlsx';
+
+export const exportDailyRecapToExcel = (
+  dailyRecords,
+  businessData,
+  selectedDate,
+  mappedSalaries = []
+) => {
   if (!dailyRecords || dailyRecords.length === 0) {
     alert('No records to export for this date');
     return;
@@ -73,53 +80,38 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
 
   const allServices = businessData.services || [];
   const serviceHeaders = allServices.map(service => service.name);
-  const headers = ['Date', 'Employee Name', ...serviceHeaders, 'Total Income'];
+  const headers = ['Tanggal', 'Nama Karyawan', ...serviceHeaders, 'Total Gaji'];
 
   const exportData = dailyRecords.map(record => {
     const employeeName = getEmployeeName(record.employeeId, businessData);
     const row = {
-      'Date': record.date,
-      'Employee Name': employeeName,
-      'Total Income': record.gajiDiterima || 0  // ✅ Ambil langsung dari gaji yang sudah dihitung
+      'Tanggal': record.date,
+      'Nama Karyawan': employeeName
     };
 
     serviceHeaders.forEach(serviceName => {
       const service = allServices.find(s => s.name === serviceName);
-      row[serviceName] = service ? (record.services?.[service.id] || 0) : 0;
+      const quantity = service ? (record.services?.[service.id] || 0) : 0;
+      row[serviceName] = quantity;
     });
+
+    const salaryMatch = mappedSalaries.find(
+      s => s.employeeId === record.employeeId && s.date === record.date
+    );
+    row['Total Gaji'] = salaryMatch ? salaryMatch.gajiDiterima : 0;
 
     return row;
   });
 
-  const csvContent = [
-    headers.join(','),
-    ...exportData.map(row =>
-      headers.map(header => {
-        const value = row[header] || 0;
-        if (typeof value === 'string') {
-          const cleanValue = value.replace(/[,"\n\r]/g, ' ').trim();
-          return `"${cleanValue}"`;
-        }
-        return value;
-      }).join(',')
-    )
-  ].join('\n');
+  const worksheet = XLSX.utils.json_to_sheet(exportData, { header: headers });
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Harian');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `daily_recap_${selectedDate}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  XLSX.writeFile(workbook, `Daily_Recap_${selectedDate}.xlsx`);
 };
 
 // Fungsi bantu
 const getEmployeeName = (employeeId, businessData) => {
   const employee = businessData.employees.find(emp => emp.id === employeeId);
-  return employee ? employee.name : 'Unknown Employee';
+  return employee ? employee.name : 'Unknown';
 };
