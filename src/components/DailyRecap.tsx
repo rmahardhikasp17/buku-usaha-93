@@ -136,7 +136,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
     return sum + recordTotal;
   }, 0);
 
-  // Calculate total employee revenue (excluding owner)
+  // Hitung total pendapatan karyawan (tidak termasuk pemilik)
   const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
     const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
     if (employee?.role !== 'Owner') {
@@ -214,7 +214,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
         </div>
       </div>
 
-      {/* Summary Cards - Only Active Employees and Total Revenue */}
+      {/* Kartu Ringkasan - Hanya Karyawan Aktif dan Total Pendapatan */}
       {dailyRecords.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
@@ -223,7 +223,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                 <User className="text-blue-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Active Employees</p>
+                <p className="text-sm text-gray-600">Karyawan Aktif</p>
                 <p className="text-2xl font-bold text-gray-800">{dailyRecords.length}</p>
               </div>
             </div>
@@ -234,7 +234,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                 <DollarSign className="text-green-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-sm text-gray-600">Total Pendapatan</p>
                 <p className="text-2xl font-bold text-gray-800">{formatCurrency(grandTotal)}</p>
               </div>
             </div>
@@ -260,8 +260,8 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="text-gray-400" size={32} />
             </div>
-            <h4 className="text-lg font-medium text-gray-600 mb-2">No records found</h4>
-            <p className="text-gray-500">No data recorded for this date</p>
+            <h4 className="text-lg font-medium text-gray-600 mb-2">Tidak ada catatan yang ditemukan</h4>
+            <p className="text-gray-500">Tidak ada data yang tercatat untuk tanggal ini</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-300">
@@ -346,7 +346,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                   </div>
                   
                   <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-gray-700">Services Performed:</h5>
+                    <h5 className="text-sm font-medium text-gray-700">Layanan yang Dilakukan:</h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {Object.entries(record.services || {})
                         .filter(([_, quantity]) => Number(quantity) > 0)
@@ -407,7 +407,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
             {/* Grand Total */}
             <div className="p-8 bg-blue-50 border-t border-gray-300">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-800">Grand Total Revenue:</span>
+                <span className="text-lg font-semibold text-gray-800">Total Pendapatan :</span>
                 <span className="text-3xl font-bold text-blue-600">{formatCurrency(grandTotal)}</span>
               </div>
             </div>
