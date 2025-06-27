@@ -116,7 +116,7 @@ const DailyRecap = ({ businessData }) => {
 
   const dailyRecords = getDailyRecords(selectedDate);
   
-  // Calculate grand total properly by summing all service totals
+  // Hitung total keseluruhan dengan benar dengan menjumlahkan semua total layanan
   const grandTotal = dailyRecords.reduce((sum, record) => {
     const recordTotal = Object.entries(record.services || {})
       .filter(([_, quantity]) => Number(quantity) > 0)
@@ -126,7 +126,7 @@ const DailyRecap = ({ businessData }) => {
     return sum + recordTotal;
   }, 0);
 
-  // Calculate total employee revenue (excluding owner)
+  // Hitung total pendapatan karyawan (tidak termasuk pemilik)
   const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
     const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
     if (employee?.role !== 'Owner') {
@@ -146,8 +146,18 @@ const DailyRecap = ({ businessData }) => {
   }).length;
 
   const handleExport = () => {
-    exportDailyRecapToExcel(dailyRecords, businessData, selectedDate);
+  const mappedSalaries = dailyRecords.map((record) => {
+    const salaryData = calculateEmployeeSalary(record, totalEmployeeRevenue, employeeCount);
+    return {
+      employeeId: record.employeeId,
+      date: record.date,
+      gajiDiterima: salaryData.salary
+    };
+  });
+
+  exportDailyRecapToExcel(dailyRecords, businessData, selectedDate, mappedSalaries);
   };
+
 
   return (
     <div className="space-y-6">
@@ -186,7 +196,7 @@ const DailyRecap = ({ businessData }) => {
         </div>
       </div>
 
-      {/* Summary Cards - Only Active Employees and Total Revenue */}
+      {/* Kartu Ringkasan - Hanya Karyawan Aktif dan Total Pendapatan */}
       {dailyRecords.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
@@ -195,7 +205,7 @@ const DailyRecap = ({ businessData }) => {
                 <User className="text-blue-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Active Employees</p>
+                <p className="text-sm text-gray-600">Karyawan Aktif</p>
                 <p className="text-2xl font-bold text-gray-800">{dailyRecords.length}</p>
               </div>
             </div>
@@ -206,7 +216,7 @@ const DailyRecap = ({ businessData }) => {
                 <DollarSign className="text-green-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-sm text-gray-600">Total Pendapatan</p>
                 <p className="text-2xl font-bold text-gray-800">{formatCurrency(grandTotal)}</p>
               </div>
             </div>
@@ -232,8 +242,8 @@ const DailyRecap = ({ businessData }) => {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="text-gray-400" size={32} />
             </div>
-            <h4 className="text-lg font-medium text-gray-600 mb-2">No records found</h4>
-            <p className="text-gray-500">No data recorded for this date</p>
+            <h4 className="text-lg font-medium text-gray-600 mb-2">Tidak ada catatan yang ditemukan</h4>
+            <p className="text-gray-500">Tidak ada data yang tercatat untuk tanggal ini</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -242,7 +252,7 @@ const DailyRecap = ({ businessData }) => {
               const isOwner = employee?.role === 'Owner';
               const salaryData = calculateEmployeeSalary(record, totalEmployeeRevenue, employeeCount);
 
-              // Calculate employee total properly
+              // Hitung total karyawan dengan benar
               const employeeTotal = Object.entries(record.services || {})
                 .filter(([_, quantity]) => Number(quantity) > 0)
                 .reduce((sum, [serviceId, quantity]) => {
@@ -320,7 +330,7 @@ const DailyRecap = ({ businessData }) => {
                   
                   <div className="space-y-4">
                     <div>
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Main Services Performed:</h5>
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Layanan yang Dilakukan:</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {Object.entries(record.services || {})
                           .filter(([_, quantity]) => Number(quantity) > 0)
@@ -341,10 +351,10 @@ const DailyRecap = ({ businessData }) => {
                       </div>
                     </div>
 
-                    {/* Bonus Services with Quantities */}
+                    {/* Layanan Bonus dengan Jumlah */}
                     {record.bonusServices && Object.keys(record.bonusServices).length > 0 && (
                       <div>
-                        <h5 className="text-sm font-medium text-gray-700 mb-2">Bonus Services:</h5>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Bonus Layanan:</h5>
                         <div className="space-y-2">
                           {Object.entries(record.bonusServices || {}).map(([serviceId, bonusData]) => (
                             Object.entries(bonusData || {})
@@ -381,7 +391,7 @@ const DailyRecap = ({ businessData }) => {
             {/* Grand Total */}
             <div className="p-6 bg-gray-50">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-800">Grand Total:</span>
+                <span className="text-lg font-semibold text-gray-800">Total Gaji:</span>
                 <span className="text-3xl font-bold text-green-600">{formatCurrency(grandTotal)}</span>
               </div>
             </div>
