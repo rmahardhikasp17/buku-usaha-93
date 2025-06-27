@@ -155,6 +155,16 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
     return employee?.role !== 'Owner';
   }).length;
 
+  const mappedSalaries = dailyRecords.map(record => {
+  const salaryData = calculateEmployeeSalary(record, totalEmployeeRevenue, employeeCount);
+  return {
+    employeeId: record.employeeId,
+    date: record.date,
+    gajiDiterima: Math.round(salaryData.salary)
+    };
+  });
+
+
   const handleExport = () => {
     if (dailyRecords.length === 0) {
       toast.error('No data to export for this date');
@@ -162,7 +172,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
     }
     
     try {
-      exportDailyRecapToExcel(dailyRecords, businessData, selectedDate);
+      exportDailyRecapToExcel(dailyRecords, businessData, selectedDate, mappedSalaries);
       toast.success('Excel file exported successfully!');
     } catch (error) {
       toast.error('Failed to export Excel file');
