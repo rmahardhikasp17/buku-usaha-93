@@ -43,6 +43,7 @@ export interface MonthlyRecap {
   }[];
 }
 
+// ✅ Export agar bisa digunakan di file lain
 export const generateMonthlyRecap = (businessData: any, month: number, year: number): MonthlyRecap => {
   const allRecords = Object.values(businessData.dailyRecords || {}) as any[];
   const filteredRecords = allRecords.filter((record) => {
@@ -177,7 +178,11 @@ export const useMonthlyReport = (businessData: any) => {
 
   const handleExport = () => {
     const [yearStr, monthStr] = selectedMonth.split('-');
-    exportMonthlyReportToExcel(businessData, Number(monthStr) - 1, Number(yearStr));
+    const month = Number(monthStr) - 1;
+    const year = Number(yearStr);
+
+    const recap = generateMonthlyRecap(businessData, month, year);
+    exportMonthlyReportToExcel(recap);
   };
 
   return {
