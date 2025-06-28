@@ -127,7 +127,7 @@ const DailyRecap = ({ businessData }) => {
   }, 0);
 
   // Hitung total pendapatan karyawan (tidak termasuk pemilik)
-  const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
+  const totalEmployeeRevenue = dailyRecords.reduce((sum, record) =>   {
     const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
     if (employee?.role !== 'Owner') {
       const recordTotal = Object.entries(record.services || {})

@@ -91,7 +91,7 @@ export const exportDailyRecapToExcel = (
 
     serviceHeaders.forEach(serviceName => {
       const service = allServices.find(s => s.name === serviceName);
-      const quantity = service ? (record.services?.[service.id] || 0) : 0;
+      const quantity =(record.services?.[service.id] || 0) + (record.bonusQuantities?.[service.id] || 0);
       row[serviceName] = quantity;
     });
 
