@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'business_bookkeeping_data';
+import * as XLSX from 'xlsx';
 
+// 📦 Load & Save Data
 export const loadData = () => {
   try {
     const savedData = localStorage.getItem(STORAGE_KEY);
@@ -18,19 +20,29 @@ export const saveData = (data) => {
   }
 };
 
+// 💰 Format Rupiah
 export const formatCurrency = (value) => {
   const numValue = Number(value) || 0;
   return `Rp ${numValue.toLocaleString('id-ID')}`;
 };
 
+// 📅 Total Pendapatan Hari Ini
 export const getTodayTotal = (businessData) => {
   const today = new Date().toISOString().split('T')[0];
-  const todayRecords = Object.values(businessData.dailyRecords)
+  const todayRecords = Object.values(businessData.dailyRecords || {})
     .filter(record => record.date === today);
 
-  return todayRecords.reduce((sum, record) => sum + record.total, 0);
+  return todayRecords.reduce((sum, record) => {
+    const services = businessData.services || [];
+    const totalLayanan = Object.entries(record.services || {}).reduce((total, [serviceId, qty]) => {
+      const service = services.find(s => s.id === serviceId);
+      return total + ((service?.price || 0) * qty);
+    }, 0);
+    return sum + totalLayanan;
+  }, 0);
 };
 
+// 📤 Export ke CSV
 export const exportToCSV = (data, filename) => {
   if (!data || data.length === 0) {
     alert('No data to export');
@@ -65,8 +77,7 @@ export const exportToCSV = (data, filename) => {
   }
 };
 
-import * as XLSX from 'xlsx';
-
+// 📤 Export Rekap Harian ke Excel
 export const exportDailyRecapToExcel = (
   dailyRecords,
   businessData,
@@ -89,7 +100,6 @@ export const exportDailyRecapToExcel = (
       'Nama Karyawan': employeeName
     };
 
-    // Hitung jumlah untuk setiap layanan (reguler + bonus)
     serviceHeaders.forEach(serviceName => {
       const service = allServices.find(s => s.name === serviceName);
       if (!service) {
@@ -97,10 +107,8 @@ export const exportDailyRecapToExcel = (
         return;
       }
 
-      // Jumlah dari layanan reguler
       const regularQuantity = record.services?.[service.id] || 0;
 
-      // Jumlah dari bonus - hitung semua bonus yang menggunakan layanan ini
       let bonusQuantity = 0;
       if (record.bonusServices && record.bonusQuantities) {
         Object.entries(record.bonusServices).forEach(([serviceId, bonusData]) => {
@@ -115,7 +123,6 @@ export const exportDailyRecapToExcel = (
       row[serviceName] = Number(regularQuantity) + Number(bonusQuantity);
     });
 
-    // Ambil gaji dari mappedSalaries
     const salaryMatch = mappedSalaries.find(
       s => s.employeeId === record.employeeId && s.date === record.date
     );
@@ -127,12 +134,117 @@ export const exportDailyRecapToExcel = (
   const worksheet = XLSX.utils.json_to_sheet(exportData, { header: headers });
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Harian');
-
   XLSX.writeFile(workbook, `Daily_Recap_${selectedDate}.xlsx`);
 };
 
-// Fungsi bantu
+// 🧑 Get Nama Karyawan
 const getEmployeeName = (employeeId, businessData) => {
   const employee = businessData.employees.find(emp => emp.id === employeeId);
   return employee ? employee.name : 'Unknown';
+};
+
+// 💼 Gaji Karyawan
+export const calculateEmployeeSalary = (record, businessData) => {
+  const services = businessData.services || [];
+  const bonuses = businessData.bonusServices || [];
+
+  const layanan = Object.entries(record.services || {}).reduce((total, [serviceId, qty]) => {
+    const service = services.find(s => s.id === serviceId);
+    return total + ((service?.price || 0) * qty);
+  }, 0);
+
+  const bonusTotal = Object.entries(record.bonusQuantities || {}).reduce((total, [serviceId, bonusMap]) => {
+    Object.entries(bonusMap).forEach(([bonusId, qty]) => {
+      const bonus = bonuses.find(b => b.id === bonusId);
+      total += (bonus?.price || 0) * qty;
+    });
+    return total;
+  }, 0);
+
+  const hadir = record.attendance ? record.attendanceBonus || 0 : 0;
+
+  return {
+    employeeId: record.employeeId,
+    date: record.date,
+    gajiDiterima: (layanan * 0.5) + bonusTotal + hadir,
+    layananTotal: layanan,
+    bonusTotal,
+    hadir
+  };
+};
+
+// 👑 Gaji Owner
+export const calculateOwnerSalary = (records, businessData) => {
+  const owner = businessData.employees.find(emp => emp.isOwner);
+  if (!owner) return null;
+
+  const ownerRecord = records.find(r => r.employeeId === owner.id);
+  if (!ownerRecord) return null;
+
+  const services = businessData.services || [];
+  const bonuses = businessData.bonusServices || [];
+
+  const layananOwner = Object.entries(ownerRecord.services || {}).reduce((total, [serviceId, qty]) => {
+    const service = services.find(s => s.id === serviceId);
+    return total + ((service?.price || 0) * qty);
+  }, 0);
+
+  const bonusOwner = Object.entries(ownerRecord.bonusQuantities || {}).reduce((total, [serviceId, bonusMap]) => {
+    Object.entries(bonusMap).forEach(([bonusId, qty]) => {
+      const bonus = bonuses.find(b => b.id === bonusId);
+      total += (bonus?.price || 0) * qty;
+    });
+    return total;
+  }, 0);
+
+  const karyawanRecords = records.filter(r => r.employeeId !== owner.id);
+  const layananKaryawan = karyawanRecords.reduce((sum, r) => {
+    return sum + Object.entries(r.services || {}).reduce((total, [serviceId, qty]) => {
+      const service = services.find(s => s.id === serviceId);
+      return total + ((service?.price || 0) * qty);
+    }, 0);
+  }, 0);
+
+  const uangHadir = karyawanRecords.reduce((sum, r) => {
+    return sum + (r.attendance ? (r.attendanceBonus || 0) : 0);
+  }, 0);
+
+  const tabungan = businessData.tabunganPerHari || 0;
+
+  const gajiOwner = layananOwner + bonusOwner + (layananKaryawan * 0.5) - uangHadir - tabungan;
+
+  return {
+    employeeId: owner.id,
+    date: ownerRecord.date,
+    gajiDiterima: gajiOwner,
+    layananOwner,
+    bonusOwner,
+    layananKaryawan,
+    uangHadir,
+    tabungan
+  };
+};
+
+// 📊 Rekap Harian
+export const calculateDailySummary = (selectedDate, businessData) => {
+  const allRecords = Object.values(businessData.dailyRecords || {});
+  const recordsToday = allRecords.filter(r => r.date === selectedDate);
+
+  const employeeSalaries = recordsToday.map(r => calculateEmployeeSalary(r, businessData));
+  const ownerSalary = calculateOwnerSalary(recordsToday, businessData);
+
+  const totalRevenue = recordsToday.reduce((sum, r) => {
+    const layanan = Object.entries(r.services || {}).reduce((total, [serviceId, qty]) => {
+      const service = businessData.services.find(s => s.id === serviceId);
+      return total + ((service?.price || 0) * qty);
+    }, 0);
+    return sum + layanan;
+  }, 0);
+
+  return {
+    tanggal: selectedDate,
+    totalPendapatan: totalRevenue,
+    gajiOwner: ownerSalary,
+    gajiKaryawan: employeeSalaries
+  };
 };
