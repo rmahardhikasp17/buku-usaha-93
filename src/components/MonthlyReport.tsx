@@ -16,6 +16,7 @@ import { formatCurrency, exportMonthlyReportToExcel } from '../utils/dataManager
 import { Badge } from '@/components/ui/badge';
 import { useMonthlyReport } from './useMonthlyReport';
 
+
 interface PerEmployeeSalary {
   employeeId: string;
   name: string;
