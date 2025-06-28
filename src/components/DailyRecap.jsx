@@ -129,10 +129,10 @@ const DailyRecap = ({ businessData }) => {
           employeeShareRevenue,
           dailySavings,
           employeeDeduction,
-          employeeCount,
-          totalEmployeeRevenue
+          employeeCount
         }
       };
+
     } else {
       // Untuk Karyawan: 50% dari pendapatannya + uang hadir
       const serviceRevenue = Object.entries(record.services || {})
