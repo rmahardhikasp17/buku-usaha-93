@@ -198,12 +198,21 @@ export const calculateOwnerSalary = (records, businessData) => {
   }, 0);
 
   const karyawanRecords = records.filter(r => r.employeeId !== owner.id);
-  const layananKaryawan = karyawanRecords.reduce((sum, r) => {
-    return sum + Object.entries(r.services || {}).reduce((total, [serviceId, qty]) => {
+  // Hitung total pendapatan layanan reguler dari semua karyawan
+  const totalBaseRevenueKaryawan = karyawanRecords.reduce((sum, r) => {
+    const layananReguler = Object.entries(r.services || {}).reduce((subtotal, [serviceId, qty]) => {
       const service = services.find(s => s.id === serviceId);
-      return total + ((service?.price || 0) * qty);
+      return subtotal + ((service?.price || 0) * qty);
     }, 0);
+    return sum + layananReguler;
   }, 0);
+
+  // Ambil hanya 50% dari layanan reguler karyawan
+  const employeeShare = totalBaseRevenueKaryawan * 0.5;
+
+  // Hitung total gaji owner
+  const gajiOwner = layananOwner + bonusOwner + employeeShare - uangHadir - tabungan;
+
 
   const uangHadir = karyawanRecords.reduce((sum, r) => {
     return sum + (r.attendance ? (r.attendanceBonus || 0) : 0);
@@ -211,17 +220,15 @@ export const calculateOwnerSalary = (records, businessData) => {
 
   const tabungan = businessData.tabunganPerHari || 0;
 
-  const gajiOwner = layananOwner + bonusOwner + (layananKaryawan * 0.5) - uangHadir - tabungan;
-
   return {
-    employeeId: owner.id,
-    date: ownerRecord.date,
-    gajiDiterima: gajiOwner,
-    layananOwner,
-    bonusOwner,
-    layananKaryawan,
-    uangHadir,
-    tabungan
+  employeeId: owner.id,
+  date: ownerRecord.date,
+  gajiDiterima: gajiOwner,
+  layananOwner,
+  bonusOwner,
+  layananKaryawan: totalBaseRevenueKaryawan, // nilai 100%-nya untuk referensi
+  uangHadir,
+  tabungan
   };
 };
 

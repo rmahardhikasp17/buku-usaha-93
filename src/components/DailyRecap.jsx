@@ -98,11 +98,16 @@ const DailyRecap = ({ businessData }) => {
         return emp?.role !== 'Owner';
       });
 
-      const totalEmployeeRevenue = employeeRecords.reduce((sum, empRecord) => {
-        return sum + calculateEmployeeRevenue(empRecord);
+      const totalBaseRevenue = employeeRecords.reduce((sum, empRecord) => {
+        const serviceRevenue = Object.entries(empRecord.services || {}).reduce((subSum, [serviceId, qty]) => {
+          const service = businessData.services?.find(s => s.id === serviceId);
+          return subSum + ((service?.price || 0) * Number(qty));
+        }, 0);
+        return sum + (serviceRevenue * 0.5);
       }, 0);
 
-      const employeeShareRevenue = totalEmployeeRevenue * 0.5;
+      const employeeShareRevenue = totalBaseRevenue;
+      
       const dailySavings = 40000;
       const employeeCount = employeeRecords.length;
       const employeeDeduction = 10000 * employeeCount;
