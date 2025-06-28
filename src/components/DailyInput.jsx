@@ -30,7 +30,7 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
     }
   }, [selectedEmployee, businessData.employees]);
 
-  // Calculate total revenue from main services only
+  // Hitung total pendapatan dari layanan utama saja
   useEffect(() => {
     const total = mainServices.reduce((sum, service) => {
       const quantity = serviceQuantities[service.id] || 0;

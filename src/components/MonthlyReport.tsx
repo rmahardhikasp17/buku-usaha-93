@@ -1,5 +1,3 @@
-// 📝 MonthlyReport.tsx (Versi Terstruktur dan Bersih)
-
 import React from 'react';
 import {
   Calendar,

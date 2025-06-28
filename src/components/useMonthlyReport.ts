@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { calculateEmployeeSalary, calculateOwnerSalary, exportMonthlyReportToExcel } from '../utils/dataManager';
+import {
+  calculateEmployeeSalary,
+  calculateOwnerSalary,
+  exportMonthlyReportToExcel
+} from '../utils/dataManager';
 
 export interface MonthlyRecap {
   bulan: number;
@@ -40,40 +44,7 @@ export interface MonthlyRecap {
 }
 
 export const generateMonthlyRecap = (businessData: any, month: number, year: number): MonthlyRecap => {
-  if (!businessData?.dailyRecords) {
-    return {
-      bulan: month,
-      tahun: year,
-      totalPendapatanService: 0,
-      totalPendapatanProduct: 0,
-      totalPemasukan: 0,
-      totalPengeluaran: 0,
-      totalGajiKaryawan: 0,
-      totalGajiOwner: 0,
-      totalTabunganOwner: 0,
-      labaBersih: 0,
-      hariAktif: 0,
-      totalEmployeeSalaries: 0,
-      ownerSalary: 0,
-      totalRevenue: 0,
-      totalExpenses: 0,
-      ownerSavings: 0,
-      totalProductRevenue: 0,
-      netProfit: 0,
-      activeDays: 0,
-      activeEmployees: 0,
-      ownerBreakdown: {
-        ownerServiceRevenue: 0,
-        ownerBonus: 0,
-        ownerShareFromKaryawan: 0,
-        uangHadirKaryawan: 0,
-        tabunganHarian: 0
-      },
-      perEmployeeSalaries: []
-    };
-  }
-
-  const allRecords = Object.values(businessData.dailyRecords) as any[];
+  const allRecords = Object.values(businessData.dailyRecords || {}) as any[];
   const filteredRecords = allRecords.filter((record) => {
     const dateObj = new Date(record.date);
     return dateObj.getMonth() === month && dateObj.getFullYear() === year;
@@ -141,9 +112,21 @@ export const generateMonthlyRecap = (businessData: any, month: number, year: num
     totalTabunganOwner += tabunganPerHari;
   }
 
-  const totalPemasukan = totalPendapatanService + totalPendapatanProduct;
-  const totalPengeluaran = totalGajiKaryawan + totalGajiOwner + totalTabunganOwner;
-  const labaBersih = totalPemasukan - totalPengeluaran + totalTabunganOwner;
+  const allIncomes = businessData.incomes || [];
+  const allExpenses = businessData.expenses || [];
+
+  const incomeThisMonth = allIncomes.filter((entry: any) => {
+    const d = new Date(entry.date);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+  const expenseThisMonth = allExpenses.filter((entry: any) => {
+    const d = new Date(entry.date);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+
+  const totalPemasukan = incomeThisMonth.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const totalPengeluaran = expenseThisMonth.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const labaBersih = totalPemasukan;
 
   return {
     bulan: month,
@@ -159,7 +142,7 @@ export const generateMonthlyRecap = (businessData: any, month: number, year: num
     hariAktif,
     totalEmployeeSalaries: totalGajiKaryawan,
     ownerSalary: totalGajiOwner,
-    totalRevenue: totalPemasukan,
+    totalRevenue: totalPendapatanService,
     totalExpenses: totalPengeluaran,
     ownerSavings: totalTabunganOwner,
     totalProductRevenue: totalPendapatanProduct,
