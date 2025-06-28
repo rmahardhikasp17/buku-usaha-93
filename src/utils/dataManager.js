@@ -225,6 +225,7 @@ export const calculateOwnerSalary = (records, businessData) => {
   };
 };
 
+
 // 📊 Rekap Harian
 export const calculateDailySummary = (selectedDate, businessData) => {
   const allRecords = Object.values(businessData.dailyRecords || {});
@@ -247,4 +248,96 @@ export const calculateDailySummary = (selectedDate, businessData) => {
     gajiOwner: ownerSalary,
     gajiKaryawan: employeeSalaries
   };
+};
+
+// 📤 Export Laporan Bulanan ke Excel (3 Sheet)
+export const exportMonthlyReportToExcel = (businessData, month, year) => {
+  const { generateMonthlyRecap } = require('./useMonthlyReport');
+  const recap = generateMonthlyRecap(businessData, month, year);
+  const records = Object.values(businessData.dailyRecords || {});
+  const filteredRecords = records.filter((r) => {
+    const date = new Date(r.date);
+    return date.getMonth() === month && date.getFullYear() === year;
+  });
+
+  const recapSheet = [{
+    'Bulan': `${month + 1}/${year}`,
+    'Total Pendapatan Service': recap.totalPendapatanService,
+    'Total Pendapatan Produk': recap.totalPendapatanProduct,
+    'Total Pemasukan': recap.totalPemasukan,
+    'Total Gaji Karyawan': recap.totalGajiKaryawan,
+    'Total Gaji Owner': recap.totalGajiOwner,
+    'Total Pengeluaran': recap.totalPengeluaran,
+    'Total Tabungan Owner': recap.totalTabunganOwner,
+    'Laba Bersih': recap.labaBersih,
+    'Hari Aktif': recap.hariAktif
+  }];
+
+  const dailyDataSheet = [];
+  const groupedByDate = {};
+  filteredRecords.forEach((r) => {
+    if (!groupedByDate[r.date]) groupedByDate[r.date] = [];
+    groupedByDate[r.date].push(r);
+  });
+
+  for (const [date, recordsOfDate] of Object.entries(groupedByDate)) {
+    const summary = calculateDailySummary(date, businessData);
+
+    summary.gajiKaryawan.forEach((emp) => {
+      dailyDataSheet.push({
+        Tanggal: date,
+        Nama: businessData.employees.find(e => e.id === emp.employeeId)?.name || '-',
+        Status: 'Karyawan',
+        Layanan: emp.layananTotal,
+        Bonus: emp.bonusTotal,
+        Hadir: emp.hadir,
+        Gaji: emp.gajiDiterima
+      });
+    });
+
+    if (summary.gajiOwner) {
+      const owner = businessData.employees.find(e => e.id === summary.gajiOwner.employeeId);
+      dailyDataSheet.push({
+        Tanggal: date,
+        Nama: owner?.name || 'Owner',
+        Status: 'Owner',
+        Layanan: summary.gajiOwner.layananOwner,
+        Bonus: summary.gajiOwner.bonusOwner,
+        Hadir: '-',
+        Gaji: summary.gajiOwner.gajiDiterima
+      });
+    }
+  }
+
+  const productSales = {};
+  filteredRecords.forEach(record => {
+    const productsSold = record.products || {};
+    for (const [productId, qty] of Object.entries(productsSold)) {
+      if (!productSales[productId]) {
+        const product = businessData.products?.find(p => p.id === productId);
+        productSales[productId] = {
+          Nama: product?.name || productId,
+          Jumlah: 0,
+          Total: 0
+        };
+      }
+      const product = businessData.products?.find(p => p.id === productId);
+      productSales[productId].Jumlah += qty;
+      productSales[productId].Total += (product?.price || 0) * qty;
+    }
+  });
+
+  const transaksiSheet = Object.values(productSales);
+
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.json_to_sheet(recapSheet);
+  const ws2 = XLSX.utils.json_to_sheet(dailyDataSheet);
+  const ws3 = XLSX.utils.json_to_sheet(transaksiSheet);
+
+  XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Data Harian');
+  XLSX.utils.book_append_sheet(wb, ws3, 'Transaksi Produk');
+
+  const filename = `Laporan_Bulanan_${year}-${String(month + 1).padStart(2, '0')}.xlsx`;
+  XLSX.writeFile(wb, filename);
 };

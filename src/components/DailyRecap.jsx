@@ -320,12 +320,7 @@ const DailyRecap = ({ businessData }) => {
                                 <span className="text-red-600">-{formatCurrency(salaryData.breakdown.employeeDeduction)}</span>
                               </div>
                             )}
-                            <div className="border-t pt-1 mt-2">
-                              <div className="flex justify-between text-xs text-gray-600">
-                                <span>Total Pendapatan Karyawan:</span>
-                                <span>{formatCurrency(salaryData.breakdown.totalEmployeeRevenue || 0)}</span>
-                              </div>
-                            </div>
+                            
                           </>
                         ) : (
                           <>
@@ -349,12 +344,7 @@ const DailyRecap = ({ businessData }) => {
                               <span>+ Uang Hadir:</span>
                               <span className="text-green-600">{formatCurrency(salaryData.breakdown.attendanceBonus)}</span>
                             </div>
-                            <div className="border-t pt-1 mt-2">
-                              <div className="flex justify-between text-xs text-gray-600">
-                                <span>Total Pendapatan:</span>
-                                <span>{formatCurrency(salaryData.breakdown.totalRevenue)}</span>
-                              </div>
-                            </div>
+                            
                           </>
                         )}
                       </div>
