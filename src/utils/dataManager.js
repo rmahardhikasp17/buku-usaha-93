@@ -89,12 +89,33 @@ export const exportDailyRecapToExcel = (
       'Nama Karyawan': employeeName
     };
 
+    // Hitung jumlah untuk setiap layanan (reguler + bonus)
     serviceHeaders.forEach(serviceName => {
       const service = allServices.find(s => s.name === serviceName);
-      const quantity =(record.services?.[service.id] || 0) + (record.bonusQuantities?.[service.id] || 0);
-      row[serviceName] = quantity;
+      if (!service) {
+        row[serviceName] = 0;
+        return;
+      }
+
+      // Jumlah dari layanan reguler
+      const regularQuantity = record.services?.[service.id] || 0;
+
+      // Jumlah dari bonus - hitung semua bonus yang menggunakan layanan ini
+      let bonusQuantity = 0;
+      if (record.bonusServices && record.bonusQuantities) {
+        Object.entries(record.bonusServices).forEach(([serviceId, bonusData]) => {
+          Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]) => {
+            if (isEnabled && bonusId === service.id) {
+              bonusQuantity += record.bonusQuantities[serviceId]?.[bonusId] || 0;
+            }
+          });
+        });
+      }
+
+      row[serviceName] = Number(regularQuantity) + Number(bonusQuantity);
     });
 
+    // Ambil gaji dari mappedSalaries
     const salaryMatch = mappedSalaries.find(
       s => s.employeeId === record.employeeId && s.date === record.date
     );
