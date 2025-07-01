@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Calendar,
@@ -68,8 +69,8 @@ const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
 
   const stats = [
     {
-      title: 'Total Pendapatan',
-      value: reportData ? formatCurrency(reportData.totalRevenue) : formatCurrency(0),
+      title: 'Total Pendapatan Service',
+      value: reportData ? formatCurrency(reportData.totalPendapatanService) : formatCurrency(0),
       icon: DollarSign,
       color: 'bg-green-500'
     },
@@ -86,8 +87,8 @@ const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
       color: 'bg-blue-500'
     },
     {
-      title: 'Pemilik Total Tabungan',
-      value: reportData ? formatCurrency(reportData.ownerSavings) : formatCurrency(0),
+      title: 'Gaji Owner',
+      value: reportData ? formatCurrency(reportData.ownerSalary) : formatCurrency(0),
       icon: PiggyBank,
       color: 'bg-purple-500'
     },
