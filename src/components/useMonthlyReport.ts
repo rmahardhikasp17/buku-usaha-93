@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import {
   calculateEmployeeSalary,
@@ -15,7 +16,6 @@ export interface MonthlyRecap {
   totalGajiKaryawan: number;
   totalGajiOwner: number;
   totalTabunganOwner: number;
-  labaBersih: number;
   hariAktif: number;
   totalEmployeeSalaries: number;
   ownerSalary: number;
@@ -23,7 +23,6 @@ export interface MonthlyRecap {
   totalExpenses: number;
   ownerSavings: number;
   totalProductRevenue: number;
-  netProfit: number;
   activeDays: number;
   activeEmployees: number;
   ownerBreakdown?: {
@@ -43,7 +42,6 @@ export interface MonthlyRecap {
   }[];
 }
 
-// ✅ Export agar bisa digunakan di file lain
 export const generateMonthlyRecap = (businessData: any, month: number, year: number): MonthlyRecap => {
   const allRecords = Object.values(businessData.dailyRecords || {}) as any[];
   const filteredRecords = allRecords.filter((record) => {
@@ -63,71 +61,103 @@ export const generateMonthlyRecap = (businessData: any, month: number, year: num
   let totalGajiOwner = 0;
   let totalTabunganOwner = 0;
   let hariAktif = 0;
+  let ownerAttendanceDays = 0;
 
-  const tabunganPerHari = businessData?.tabunganPerHari || 0;
   const perEmployeeSalaries: MonthlyRecap['perEmployeeSalaries'] = [];
+  const employeeSalariesByEmployee: Record<string, { gaji: number; bonus: number; potongan: number }> = {};
 
   let ownerBreakdown: MonthlyRecap['ownerBreakdown'] = {
     ownerServiceRevenue: 0,
     ownerBonus: 0,
     ownerShareFromKaryawan: 0,
     uangHadirKaryawan: 0,
-    tabunganHarian: tabunganPerHari
+    tabunganHarian: 0
   };
 
+  // Calculate service revenue and salaries per day
   for (const [_, records] of Object.entries(groupedByDate)) {
     hariAktif += 1;
+
+    // Check if owner is present this day
+    const owner = businessData.employees?.find(emp => emp.isOwner);
+    const ownerRecord = records.find(r => r.employeeId === owner?.id);
+    if (ownerRecord) {
+      ownerAttendanceDays += 1;
+    }
 
     for (const record of records) {
       const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
       const name = employee?.name || 'Tidak diketahui';
       const role = employee?.isOwner ? 'Owner' : 'Karyawan';
 
-      const result = employee?.isOwner
-        ? calculateOwnerSalary(records, businessData)
-        : calculateEmployeeSalary(record, businessData);
-
-      const gaji = result?.gajiDiterima || 0;
-      const bonus = result?.bonusTotal || result?.bonus || 0;
-      const potongan = result?.hadir || 0;
-
       if (employee?.isOwner) {
-        totalGajiOwner += gaji;
-        ownerBreakdown.ownerServiceRevenue += result?.layananOwner || 0;
-        ownerBreakdown.ownerBonus += result?.bonusOwner || 0;
-        ownerBreakdown.ownerShareFromKaryawan += result?.layananKaryawan * 0.5 || 0;
-        ownerBreakdown.uangHadirKaryawan += result?.uangHadir || 0;
+        const result = calculateOwnerSalary(records, businessData);
+        if (result) {
+          totalGajiOwner += result.gajiDiterima;
+          ownerBreakdown.ownerServiceRevenue += result.layananOwner || 0;
+          ownerBreakdown.ownerBonus += result.bonusOwner || 0;
+          ownerBreakdown.ownerShareFromKaryawan += (result.layananKaryawan || 0) * 0.5;
+          ownerBreakdown.uangHadirKaryawan += result.uangHadir || 0;
+        }
       } else {
-        totalGajiKaryawan += gaji;
-        perEmployeeSalaries.push({ employeeId: record.employeeId, name, role, gaji, bonus, potongan });
-        totalPendapatanService += result?.layananTotal || 0;
+        // Use calculateEmployeeSalary for accurate calculation
+        const result = calculateEmployeeSalary(record, businessData);
+        
+        if (!employeeSalariesByEmployee[record.employeeId]) {
+          employeeSalariesByEmployee[record.employeeId] = { gaji: 0, bonus: 0, potongan: 0 };
+        }
+        
+        employeeSalariesByEmployee[record.employeeId].gaji += result.gajiDiterima;
+        employeeSalariesByEmployee[record.employeeId].bonus += result.bonusTotal || 0;
+        employeeSalariesByEmployee[record.employeeId].potongan += result.hadir || 0;
+        
+        totalGajiKaryawan += result.gajiDiterima;
+        totalPendapatanService += result.layananTotal || 0;
       }
 
+      // Calculate product sales
       const productSales = Object.entries(record.products || {}).reduce((sum, [productId, qty]) => {
         const product = businessData.products?.find(p => p.id === productId);
         return sum + ((product?.price || 0) * Number(qty));
       }, 0);
       totalPendapatanProduct += productSales;
     }
-
-    totalTabunganOwner += tabunganPerHari;
   }
 
-  const allIncomes = businessData.incomes || [];
-  const allExpenses = businessData.expenses || [];
-
-  const incomeThisMonth = allIncomes.filter((entry: any) => {
-    const d = new Date(entry.date);
-    return d.getMonth() === month && d.getFullYear() === year;
+  // Build per employee salary summary
+  Object.entries(employeeSalariesByEmployee).forEach(([employeeId, salaryData]) => {
+    const employee = businessData.employees?.find(emp => emp.id === employeeId);
+    if (employee && !employee.isOwner) {
+      perEmployeeSalaries.push({
+        employeeId,
+        name: employee.name,
+        role: 'Karyawan',
+        gaji: salaryData.gaji,
+        bonus: salaryData.bonus,
+        potongan: salaryData.potongan
+      });
+    }
   });
+
+  // Calculate Owner Savings: Product Sales + 40,000 x Owner Attendance Days
+  totalTabunganOwner = totalPendapatanProduct + (40000 * ownerAttendanceDays);
+  ownerBreakdown.tabunganHarian = 40000 * ownerAttendanceDays;
+
+  // Calculate expenses from expenses page
+  const allExpenses = businessData.expenses || [];
   const expenseThisMonth = allExpenses.filter((entry: any) => {
     const d = new Date(entry.date);
     return d.getMonth() === month && d.getFullYear() === year;
   });
-
-  const totalPemasukan = incomeThisMonth.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const totalPengeluaran = expenseThisMonth.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const labaBersih = totalPemasukan;
+
+  // Calculate incomes from incomes page
+  const allIncomes = businessData.incomes || [];
+  const incomeThisMonth = allIncomes.filter((entry: any) => {
+    const d = new Date(entry.date);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+  const totalPemasukan = incomeThisMonth.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   return {
     bulan: month,
@@ -139,7 +169,6 @@ export const generateMonthlyRecap = (businessData: any, month: number, year: num
     totalGajiKaryawan,
     totalGajiOwner,
     totalTabunganOwner,
-    labaBersih,
     hariAktif,
     totalEmployeeSalaries: totalGajiKaryawan,
     ownerSalary: totalGajiOwner,
@@ -147,7 +176,6 @@ export const generateMonthlyRecap = (businessData: any, month: number, year: num
     totalExpenses: totalPengeluaran,
     ownerSavings: totalTabunganOwner,
     totalProductRevenue: totalPendapatanProduct,
-    netProfit: labaBersih,
     activeDays: hariAktif,
     activeEmployees: businessData.employees?.filter((e: any) => !e.isOwner)?.length || 0,
     ownerBreakdown,
