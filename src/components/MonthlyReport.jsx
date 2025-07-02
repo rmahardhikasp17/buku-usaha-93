@@ -49,6 +49,8 @@ const MonthlyReport = ({ businessData }) => {
     const monthStart = `${year}-${month}-01`;
     const monthEnd = `${year}-${month}-31`;
 
+    console.log('DEBUG: Filter range:', { monthStart, monthEnd });
+
     // Filter daily records for the selected month
     const monthlyRecords = Object.values(businessData.dailyRecords || {})
       .filter(record => record.date >= monthStart && record.date <= monthEnd);
@@ -60,6 +62,19 @@ const MonthlyReport = ({ businessData }) => {
     // Filter product sales for the selected month
     const monthlyProductSales = Object.values(businessData.productSales || {})
       .filter(sale => sale.date >= monthStart && sale.date <= monthEnd);
+
+    console.log('DEBUG: Filtered data counts:', {
+      monthlyRecords: monthlyRecords.length,
+      monthlyTransactions: monthlyTransactions.length,
+      monthlyProductSales: monthlyProductSales.length
+    });
+
+    console.log('DEBUG: Monthly records gajiDiterima:', monthlyRecords.map(r => ({
+      date: r.date,
+      employeeId: r.employeeId,
+      gajiDiterima: r.gajiDiterima,
+      employeeName: getEmployeeName(r.employeeId)
+    })));
 
     // Use saved data from dailyRecords
     const totalGajiKaryawan = monthlyRecords
@@ -73,6 +88,13 @@ const MonthlyReport = ({ businessData }) => {
     const totalBonus = monthlyRecords.reduce((sum, r) => sum + (r.bonusTotal || 0), 0);
 
     const totalTabungan = monthlyRecords.reduce((sum, r) => sum + (r.potongan || 0), 0);
+
+    console.log('DEBUG: Salary calculations:', {
+      totalGajiKaryawan,
+      totalGajiOwner,
+      totalBonus,
+      totalTabungan
+    });
 
     // Calculate total revenue from saved data (not recalculated)
     const totalRevenue = monthlyRecords.reduce((sum, record) => {
@@ -102,10 +124,16 @@ const MonthlyReport = ({ businessData }) => {
       .reduce((sum, t) => sum + Number(t.amount), 0);
 
     // Calculate product sales revenue
-    const totalProductRevenue = monthlyProductSales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalProductRevenue = monthlyProductSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
 
-    // Calculate Total Tabungan Owner = income from Income & Expense page + product sales + 40k deduction from owner salary
-    const ownerSavings = income + totalProductRevenue + totalTabungan;
+    console.log('DEBUG: Product sales data:', {
+      totalProductRevenue,
+      productSalesCount: monthlyProductSales.length,
+      productSalesData: monthlyProductSales
+    });
+
+    // Calculate Total Tabungan Owner = only 40k deduction from owner salary (totalTabungan)
+    const ownerSavings = totalTabungan;
 
     // Calculate activity stats
     const activeDays = new Set(monthlyRecords.map(record => record.date)).size;
@@ -113,6 +141,15 @@ const MonthlyReport = ({ businessData }) => {
 
     // Calculate total gaji dibayarkan (combined employee + owner salaries)
     const totalGajiDibayarkan = totalGajiKaryawan + totalGajiOwner;
+
+    console.log('DEBUG: Final calculations:', {
+      totalRevenue,
+      totalExpenses: expenses,
+      totalGajiDibayarkan,
+      ownerSavings,
+      totalProductRevenue,
+      income
+    });
 
     // Calculate per employee salaries
     const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
