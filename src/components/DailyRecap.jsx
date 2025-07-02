@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Calendar, Download, Eye, User, DollarSign } from 'lucide-react';
 import { formatCurrency, exportDailyRecapToExcel } from '../utils/dataManager';
@@ -26,15 +27,15 @@ const DailyRecap = ({ businessData }) => {
     return servicePrice * serviceQuantity;
   };
 
-  const calculateBonusTotal = (record) => {
-    if (!record.bonusServices || !record.bonusQuantities) return 0;
+  const calculateBonusTotal = (bonusServices, bonusQuantities) => {
+    if (!bonusServices || !bonusQuantities) return 0;
     
     let total = 0;
-    Object.entries(record.bonusServices).forEach(([serviceId, bonusData]) => {
+    Object.entries(bonusServices).forEach(([serviceId, bonusData]) => {
       Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]) => {
         if (isEnabled) {
           const bonusService = businessData.services?.find(s => s.id === bonusId);
-          const bonusQty = record.bonusQuantities[serviceId]?.[bonusId] || 0;
+          const bonusQty = bonusQuantities[serviceId]?.[bonusId] || 0;
           total += (bonusService?.price || 0) * bonusQty;
         }
       });
@@ -43,16 +44,16 @@ const DailyRecap = ({ businessData }) => {
     return total;
   };
 
-  const getBonusDetails = (record) => {
+  const getBonusDetails = (bonusServices, bonusQuantities) => {
     const details = [];
     
-    if (!record.bonusServices || !record.bonusQuantities) return details;
+    if (!bonusServices || !bonusQuantities) return details;
     
-    Object.entries(record.bonusServices).forEach(([serviceId, bonusData]) => {
+    Object.entries(bonusServices).forEach(([serviceId, bonusData]) => {
       Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]) => {
         if (isEnabled) {
           const bonusService = businessData.services?.find(s => s.id === bonusId);
-          const bonusQty = record.bonusQuantities[serviceId]?.[bonusId] || 0;
+          const bonusQty = bonusQuantities[serviceId]?.[bonusId] || 0;
           if (bonusQty > 0 && bonusService) {
             details.push({
               name: bonusService.name,
@@ -67,59 +68,24 @@ const DailyRecap = ({ businessData }) => {
     return details;
   };
 
-  const calculateEmployeeRevenue = (record) => {
-    // Hitung pendapatan dari layanan reguler
+  const calculateEmployeeSalary = (record, totalEmployeeRevenue, employeeCount) => {
+    const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+    const isOwner = employee?.role === 'Owner';
+    
     const serviceRevenue = Object.entries(record.services || {})
       .filter(([_, quantity]) => Number(quantity) > 0)
       .reduce((sum, [serviceId, quantity]) => {
         return sum + calculateServiceTotal(serviceId, Number(quantity));
       }, 0);
 
-    // Hitung pendapatan dari bonus (bonus juga termasuk pendapatan)
-    const bonusRevenue = calculateBonusTotal(record);
-
-    return serviceRevenue + bonusRevenue;
-  };
-
-  const calculateEmployeeSalary = (record, allRecords) => {
-    const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
-    const isOwner = employee?.role === 'Owner';
-    
-    // Hitung pendapatan karyawan ini
-    const ownRevenue = calculateEmployeeRevenue(record);
-    const bonusDetails = getBonusDetails(record);
+    const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+    const bonusDetails = getBonusDetails(record.bonusServices, record.bonusQuantities);
 
     if (isOwner) {
-      // Untuk Owner: Pendapatan sendiri + 50% dari semua karyawan - tabungan - uang hadir karyawan
-      
-      // Hitung total pendapatan dari semua karyawan (bukan Owner)
-      const employeeRecords = allRecords.filter(r => {
-        const emp = businessData.employees?.find(e => e.id === r.employeeId);
-        return emp?.role !== 'Owner';
-      });
-
-      const totalBaseRevenue = employeeRecords.reduce((sum, empRecord) => {
-        const serviceRevenue = Object.entries(empRecord.services || {}).reduce((subSum, [serviceId, qty]) => {
-          const service = businessData.services?.find(s => s.id === serviceId);
-          return subSum + ((service?.price || 0) * Number(qty));
-        }, 0);
-        return sum + (serviceRevenue * 0.5);
-      }, 0);
-
-      const employeeShareRevenue = totalBaseRevenue;
-      
+      const employeeShareRevenue = totalEmployeeRevenue * 0.5;
       const dailySavings = 40000;
-      const employeeCount = employeeRecords.length;
       const employeeDeduction = 10000 * employeeCount;
       
-      const serviceRevenue = Object.entries(record.services || {})
-        .filter(([_, quantity]) => Number(quantity) > 0)
-        .reduce((sum, [serviceId, quantity]) => {
-          return sum + calculateServiceTotal(serviceId, Number(quantity));
-        }, 0);
-
-      const bonusTotal = calculateBonusTotal(record);
-
       return {
         salary: serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings - employeeDeduction,
         breakdown: {
@@ -132,27 +98,17 @@ const DailyRecap = ({ businessData }) => {
           employeeCount
         }
       };
-
     } else {
-      // Untuk Karyawan: 50% dari pendapatannya + uang hadir
-      const serviceRevenue = Object.entries(record.services || {})
-        .filter(([_, quantity]) => Number(quantity) > 0)
-        .reduce((sum, [serviceId, quantity]) => {
-          return sum + calculateServiceTotal(serviceId, Number(quantity));
-        }, 0);
-
-      const bonusTotal = calculateBonusTotal(record);
-      const baseRevenue = serviceRevenue * 0.5; // 50% dari layanan reguler
+      const baseRevenue = serviceRevenue * 0.5;
       const attendanceBonus = 10000;
       
       return {
-        salary: baseRevenue + bonusTotal + attendanceBonus, // Bonus 100% untuk karyawan
+        salary: baseRevenue + bonusTotal + attendanceBonus,
         breakdown: {
           baseRevenue,
           bonusTotal,
           bonusDetails,
-          attendanceBonus,
-          totalRevenue: serviceRevenue + bonusTotal
+          attendanceBonus
         }
       };
     }
@@ -160,22 +116,37 @@ const DailyRecap = ({ businessData }) => {
 
   const dailyRecords = getDailyRecords(selectedDate);
   
-  // Hitung total keseluruhan pendapatan (semua layanan + bonus)
+  // Calculate grand total properly by summing all service totals
   const grandTotal = dailyRecords.reduce((sum, record) => {
-    return sum + calculateEmployeeRevenue(record);
+    const recordTotal = Object.entries(record.services || {})
+      .filter(([_, quantity]) => Number(quantity) > 0)
+      .reduce((recordSum, [serviceId, quantity]) => {
+        return recordSum + calculateServiceTotal(serviceId, quantity);
+      }, 0);
+    return sum + recordTotal;
   }, 0);
 
-  const handleExport = () => {
-    const mappedSalaries = dailyRecords.map((record) => {
-      const salaryData = calculateEmployeeSalary(record, dailyRecords);
-      return {
-        employeeId: record.employeeId,
-        date: record.date,
-        gajiDiterima: salaryData.salary
-      };
-    });
+  // Calculate total employee revenue (excluding owner)
+  const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
+    const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+    if (employee?.role !== 'Owner') {
+      const recordTotal = Object.entries(record.services || {})
+        .filter(([_, quantity]) => Number(quantity) > 0)
+        .reduce((recordSum, [serviceId, quantity]) => {
+          return recordSum + calculateServiceTotal(serviceId, quantity);
+        }, 0);
+      return sum + recordTotal;
+    }
+    return sum;
+  }, 0);
 
-    exportDailyRecapToExcel(dailyRecords, businessData, selectedDate, mappedSalaries);
+  const employeeCount = dailyRecords.filter(record => {
+    const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+    return employee?.role !== 'Owner';
+  }).length;
+
+  const handleExport = () => {
+    exportDailyRecapToExcel(dailyRecords, businessData, selectedDate);
   };
 
   return (
@@ -215,7 +186,7 @@ const DailyRecap = ({ businessData }) => {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards - Only Active Employees and Total Revenue */}
       {dailyRecords.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
@@ -224,7 +195,7 @@ const DailyRecap = ({ businessData }) => {
                 <User className="text-blue-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Karyawan Aktif</p>
+                <p className="text-sm text-gray-600">Active Employees</p>
                 <p className="text-2xl font-bold text-gray-800">{dailyRecords.length}</p>
               </div>
             </div>
@@ -235,7 +206,7 @@ const DailyRecap = ({ businessData }) => {
                 <DollarSign className="text-green-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Pendapatan</p>
+                <p className="text-sm text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-800">{formatCurrency(grandTotal)}</p>
               </div>
             </div>
@@ -261,16 +232,22 @@ const DailyRecap = ({ businessData }) => {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="text-gray-400" size={32} />
             </div>
-            <h4 className="text-lg font-medium text-gray-600 mb-2">Tidak ada catatan yang ditemukan</h4>
-            <p className="text-gray-500">Tidak ada data yang tercatat untuk tanggal ini</p>
+            <h4 className="text-lg font-medium text-gray-600 mb-2">No records found</h4>
+            <p className="text-gray-500">No data recorded for this date</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
             {dailyRecords.map((record, index) => {
               const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
               const isOwner = employee?.role === 'Owner';
-              const salaryData = calculateEmployeeSalary(record, dailyRecords);
-              const employeeRevenue = calculateEmployeeRevenue(record);
+              const salaryData = calculateEmployeeSalary(record, totalEmployeeRevenue, employeeCount);
+
+              // Calculate employee total properly
+              const employeeTotal = Object.entries(record.services || {})
+                .filter(([_, quantity]) => Number(quantity) > 0)
+                .reduce((sum, [serviceId, quantity]) => {
+                  return sum + calculateServiceTotal(serviceId, quantity);
+                }, 0);
 
               return (
                 <div key={index} className="p-6">
@@ -280,7 +257,6 @@ const DailyRecap = ({ businessData }) => {
                         {getEmployeeName(record.employeeId)}
                       </h4>
                       <p className="text-sm text-gray-600">{isOwner ? 'Owner' : 'Employee'}</p>
-                      <p className="text-sm text-gray-500">Pendapatan: {formatCurrency(employeeRevenue)}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold text-blue-600 mb-3">
@@ -289,7 +265,7 @@ const DailyRecap = ({ businessData }) => {
                       
                       {/* Structured Salary Breakdown */}
                       <div className="text-sm text-gray-700 space-y-1 bg-blue-50 p-4 rounded-lg border max-w-md">
-                        <p className="font-medium text-gray-800 mb-2">Rincian Gaji:</p>
+                        <p className="font-medium text-gray-800 mb-2">Rinciannya:</p>
                         
                         {isOwner ? (
                           <>
@@ -297,15 +273,9 @@ const DailyRecap = ({ businessData }) => {
                               <span>+ Pendapatan Layanan:</span>
                               <span className="text-green-600">{formatCurrency(salaryData.breakdown.serviceRevenue)}</span>
                             </div>
-                            {salaryData.breakdown.bonusTotal > 0 && (
-                              <div className="flex justify-between">
-                                <span>+ Bonus:</span>
-                                <span className="text-green-600">{formatCurrency(salaryData.breakdown.bonusTotal)}</span>
-                              </div>
-                            )}
                             {salaryData.breakdown.bonusDetails.map((bonus, idx) => (
-                              <div key={idx} className="flex justify-between text-xs ml-4">
-                                <span>• {bonus.name} ({bonus.quantity}x):</span>
+                              <div key={idx} className="flex justify-between">
+                                <span>+ Bonus {bonus.name}:</span>
                                 <span className="text-green-600">{formatCurrency(bonus.value)}</span>
                               </div>
                             ))}
@@ -325,31 +295,23 @@ const DailyRecap = ({ businessData }) => {
                                 <span className="text-red-600">-{formatCurrency(salaryData.breakdown.employeeDeduction)}</span>
                               </div>
                             )}
-                            
                           </>
                         ) : (
                           <>
                             <div className="flex justify-between">
-                              <span>+ 50% Pendapatan Layanan:</span>
+                              <span>+ 50% Pendapatan:</span>
                               <span className="text-green-600">{formatCurrency(salaryData.breakdown.baseRevenue)}</span>
                             </div>
-                            {salaryData.breakdown.bonusTotal > 0 && (
-                              <div className="flex justify-between">
-                                <span>+ Bonus (100%):</span>
-                                <span className="text-green-600">{formatCurrency(salaryData.breakdown.bonusTotal)}</span>
-                              </div>
-                            )}
                             {salaryData.breakdown.bonusDetails.map((bonus, idx) => (
-                              <div key={idx} className="flex justify-between text-xs ml-4">
-                                <span>• {bonus.name} ({bonus.quantity}x):</span>
+                              <div key={idx} className="flex justify-between">
+                                <span>+ Bonus {bonus.name}:</span>
                                 <span className="text-green-600">{formatCurrency(bonus.value)}</span>
                               </div>
                             ))}
                             <div className="flex justify-between">
-                              <span>+ Uang Hadir:</span>
+                              <span>+ Hadir:</span>
                               <span className="text-green-600">{formatCurrency(salaryData.breakdown.attendanceBonus)}</span>
                             </div>
-                            
                           </>
                         )}
                       </div>
@@ -358,7 +320,7 @@ const DailyRecap = ({ businessData }) => {
                   
                   <div className="space-y-4">
                     <div>
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Layanan yang Dilakukan:</h5>
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Main Services Performed:</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {Object.entries(record.services || {})
                           .filter(([_, quantity]) => Number(quantity) > 0)
@@ -379,10 +341,10 @@ const DailyRecap = ({ businessData }) => {
                       </div>
                     </div>
 
-                    {/* Layanan Bonus dengan Jumlah */}
+                    {/* Bonus Services with Quantities */}
                     {record.bonusServices && Object.keys(record.bonusServices).length > 0 && (
                       <div>
-                        <h5 className="text-sm font-medium text-gray-700 mb-2">Bonus Layanan:</h5>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Bonus Services:</h5>
                         <div className="space-y-2">
                           {Object.entries(record.bonusServices || {}).map(([serviceId, bonusData]) => (
                             Object.entries(bonusData || {})
@@ -419,17 +381,8 @@ const DailyRecap = ({ businessData }) => {
             {/* Grand Total */}
             <div className="p-6 bg-gray-50">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-800">Total Pendapatan Hari Ini:</span>
+                <span className="text-lg font-semibold text-gray-800">Grand Total:</span>
                 <span className="text-3xl font-bold text-green-600">{formatCurrency(grandTotal)}</span>
-              </div>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-lg font-semibold text-gray-800">Total Gaji Dibayarkan:</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(dailyRecords.reduce((sum, record) => {
-                    const salaryData = calculateEmployeeSalary(record, dailyRecords);
-                    return sum + salaryData.salary;
-                  }, 0))}
-                </span>
               </div>
             </div>
           </div>

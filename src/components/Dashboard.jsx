@@ -1,13 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Package, Users, DollarSign } from 'lucide-react';
+import { Package, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { getTodayTotal, formatCurrency } from '../utils/dataManager';
-import MonthlyReport from '../components/MonthlyReport'; // pastikan path ini sesuai
 
 const Dashboard = ({ businessData }) => {
   const todayTotal = getTodayTotal(businessData);
   const today = new Date().toLocaleDateString();
-
+  
+  // Calculate today's product sales
   const todayProductSales = Object.values(businessData.productSales || {})
     .filter(sale => sale.date === new Date().toISOString().split('T')[0])
     .reduce((sum, sale) => sum + sale.total, 0);
@@ -38,9 +37,6 @@ const Dashboard = ({ businessData }) => {
       color: 'bg-orange-500'
     }
   ];
-
-  const selectedMonth = new Date().getMonth(); // bulan sekarang
-  const selectedYear = new Date().getFullYear();
 
   return (
     <div className="space-y-6">
@@ -78,18 +74,18 @@ const Dashboard = ({ businessData }) => {
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link to="/layanan" className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-blue-400 transition-colors">
+          <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-blue-400 transition-colors">
             <Package className="mx-auto text-gray-400 mb-2" size={32} />
             <p className="text-sm text-gray-600">Manage Services</p>
-          </Link>
-          <Link to="/pegawai" className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-green-400 transition-colors">
+          </div>
+          <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-green-400 transition-colors">
             <Users className="mx-auto text-gray-400 mb-2" size={32} />
             <p className="text-sm text-gray-600">Manage Employees</p>
-          </Link>
-          <Link to="/pendapatan" className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-purple-400 transition-colors">
+          </div>
+          <div className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-purple-400 transition-colors">
             <DollarSign className="mx-auto text-gray-400 mb-2" size={32} />
             <p className="text-sm text-gray-600">Record Daily Income</p>
-          </Link>
+          </div>
         </div>
       </div>
 
@@ -111,13 +107,6 @@ const Dashboard = ({ businessData }) => {
           </div>
         </div>
       </div>
-
-      {/* Monthly Report Export Button */}
-      <MonthlyReport
-        businessData={businessData}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-      />
     </div>
   );
 };
