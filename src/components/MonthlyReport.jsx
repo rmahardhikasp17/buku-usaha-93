@@ -74,8 +74,13 @@ const MonthlyReport = ({ businessData }) => {
 
     const totalTabungan = monthlyRecords.reduce((sum, r) => sum + (r.potongan || 0), 0);
 
-    // Calculate revenue from services
+    // Calculate total revenue from saved data (not recalculated)
     const totalRevenue = monthlyRecords.reduce((sum, record) => {
+      // Use saved service revenue if available, otherwise calculate from services
+      if (record.serviceRevenue !== undefined) {
+        return sum + (record.serviceRevenue || 0);
+      }
+      // Fallback to calculation if serviceRevenue not saved
       const recordTotal = Object.entries(record.services || {})
         .filter(([_, quantity]) => Number(quantity) > 0)
         .reduce((recordSum, [serviceId, quantity]) => {
@@ -103,8 +108,8 @@ const MonthlyReport = ({ businessData }) => {
     const activeDays = new Set(monthlyRecords.map(record => record.date)).size;
     const activeEmployees = new Set(monthlyRecords.map(record => record.employeeId)).size;
 
-    // Net profit = Total revenue + Income + Product revenue - Employee salaries - Owner salary - Expenses
-    const netProfit = totalRevenue + income + totalProductRevenue - totalGajiKaryawan - Math.max(0, totalGajiOwner) - expenses;
+    // Calculate total gaji dibayarkan (combined employee + owner salaries)
+    const totalGajiDibayarkan = totalGajiKaryawan + totalGajiOwner;
 
     // Calculate per employee salaries
     const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
@@ -116,7 +121,7 @@ const MonthlyReport = ({ businessData }) => {
       ownerSavings: totalTabungan,
       totalBonuses: totalBonus,
       totalProductRevenue,
-      netProfit,
+      totalGajiDibayarkan,
       activeDays,
       activeEmployees,
       ownerSalary: totalGajiOwner,
@@ -147,10 +152,9 @@ const MonthlyReport = ({ businessData }) => {
         ['RINGKASAN'],
         ['Total Pendapatan', reportData.totalRevenue],
         ['Total Pengeluaran', reportData.totalExpenses],
-        ['Total Gaji Karyawan', reportData.totalEmployeeSalaries],
+        ['Total Gaji Dibayarkan', reportData.totalGajiDibayarkan],
         ['Total Tabungan Owner', reportData.ownerSavings],
         ['Total Product Revenue', reportData.totalProductRevenue],
-        ['Laba Bersih', reportData.netProfit],
         [''],
         ['AKTIVITAS'],
         ['Hari Aktif', reportData.activeDays],
@@ -265,8 +269,8 @@ const MonthlyReport = ({ businessData }) => {
       {/* Summary Statistics */}
       {reportData && (
         <>
-          {/* Main Statistics - 5 Columns */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          {/* Main Statistics - 4 Columns */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -297,8 +301,8 @@ const MonthlyReport = ({ businessData }) => {
                   <Users className="text-blue-600" size={24} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Gaji Karyawan</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(reportData.totalEmployeeSalaries)}</p>
+                  <p className="text-sm text-gray-600">Total Gaji Dibayarkan</p>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(reportData.totalGajiDibayarkan)}</p>
                 </div>
               </div>
             </div>
@@ -314,37 +318,10 @@ const MonthlyReport = ({ businessData }) => {
                 </div>
               </div>
             </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className="text-orange-600" size={24} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Product Revenue</p>
-                  <p className="text-2xl font-bold text-orange-600">{formatCurrency(reportData.totalProductRevenue)}</p>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Additional Statistics - 3 Columns */}
+          {/* Additional Statistics - 2 Columns + Product Revenue */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center space-x-3">
-                <div className={`w-12 h-12 ${reportData.netProfit >= 0 ? 'bg-green-100' : 'bg-red-100'} rounded-lg flex items-center justify-center`}>
-                  <DollarSign className={reportData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'} size={24} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Laba Bersih</p>
-                  <p className={`text-2xl font-bold ${reportData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(reportData.netProfit)}
-                  </p>
-                  <p className="text-xs text-gray-500">Including product sales</p>
-                </div>
-              </div>
-            </div>
-
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -368,6 +345,18 @@ const MonthlyReport = ({ businessData }) => {
                 </div>
               </div>
             </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="text-orange-600" size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Product Revenue</p>
+                  <p className="text-2xl font-bold text-orange-600">{formatCurrency(reportData.totalProductRevenue)}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Bonus Services Summary */}
@@ -386,6 +375,57 @@ const MonthlyReport = ({ businessData }) => {
             </div>
           )}
 
+          {/* Employee Salaries Section */}
+          {reportData.perEmployeeSalaries && reportData.perEmployeeSalaries.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-6">💼 Rangkuman Gaji Karyawan Bulan Ini</h3>
+              <div className="space-y-4">
+                {reportData.perEmployeeSalaries.map((emp, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-2xl">
+                        {emp.role === 'Owner' ? '👤' : '🧑‍🔧'}
+                      </span>
+                      <div>
+                        <div className="font-medium text-gray-800">
+                          {emp.name} ({emp.role})
+                        </div>
+                        {emp.bonus > 0 && (
+                          <div className="text-sm text-gray-600">
+                            Bonus: {formatCurrency(emp.bonus)}
+                          </div>
+                        )}
+                        {emp.potongan > 0 && (
+                          <div className="text-sm text-gray-600">
+                            Potongan: {formatCurrency(emp.potongan)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="font-bold text-lg text-gray-800">{formatCurrency(emp.gaji)}</span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        emp.gaji >= 2000000 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <div className="border-t pt-4 mt-6">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-800 text-lg">🧾 Total Gaji Dibayarkan :</span>
+                    <span className="font-bold text-2xl text-green-600">
+                      {formatCurrency(reportData.totalGajiDibayarkan)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Product Sales Summary */}
           {reportData.totalProductRevenue > 0 && (
             <div className="bg-orange-50 rounded-xl shadow-sm p-6 border border-orange-200">
@@ -397,80 +437,6 @@ const MonthlyReport = ({ businessData }) => {
                   <p className="text-sm text-gray-600">Total Product Sales</p>
                   <p className="text-2xl font-bold text-orange-600">{formatCurrency(reportData.totalProductRevenue)}</p>
                   <p className="text-xs text-gray-500 mt-1">{reportData.monthlyProductSales.length} transactions</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Owner Salary Breakdown */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Owner Salary Breakdown</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Owner Service Revenue:</span>
-                <span className="font-medium">{formatCurrency(reportData.ownerData.ownerRevenue)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Owner Bonus Services:</span>
-                <span className="font-medium">{formatCurrency(reportData.ownerData.ownerBonus)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">50% Employee Revenue:</span>
-                <span className="font-medium">{formatCurrency(reportData.ownerData.employeeRevenue * 0.5)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Daily Savings ({reportData.activeDays} days):</span>
-                <span className="font-medium text-red-600">-{formatCurrency(40000 * reportData.activeDays)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Employee Deductions ({reportData.ownerData.totalEmployeeWorkingDays} × 10k):</span>
-                <span className="font-medium text-red-600">-{formatCurrency(10000 * reportData.ownerData.totalEmployeeWorkingDays)}</span>
-              </div>
-              <div className="border-t pt-3 mt-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-800">Owner Final Salary:</span>
-                  <span className={`font-bold text-xl ${reportData.ownerSalary >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(reportData.ownerSalary)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Employee Salaries Section - New */}
-          {reportData && reportData.perEmployeeSalaries && (
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">💼 Rangkuman Gaji Karyawan Bulan Ini</h3>
-              <div className="space-y-3">
-                {reportData.perEmployeeSalaries.map((emp, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-lg">
-                        {emp.role === 'Owner' ? '👤' : '🧑‍🔧'}
-                      </span>
-                      <span className="font-medium text-gray-800">
-                        {emp.name} ({emp.role})
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span className="font-bold text-gray-800">{formatCurrency(emp.gaji)}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        emp.gaji >= 2000000 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                <div className="border-t pt-3 mt-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-800">🧾 Total Gaji Dibayarkan :</span>
-                    <span className="font-bold text-xl text-green-600">
-                      {formatCurrency(reportData.totalEmployeeSalaries + Math.max(0, reportData.ownerSalary))}
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
