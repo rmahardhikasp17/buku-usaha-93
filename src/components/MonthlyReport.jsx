@@ -104,6 +104,9 @@ const MonthlyReport = ({ businessData }) => {
     // Calculate product sales revenue
     const totalProductRevenue = monthlyProductSales.reduce((sum, sale) => sum + sale.total, 0);
 
+    // Calculate Total Tabungan Owner = income from Income & Expense page + product sales + 40k deduction from owner salary
+    const ownerSavings = income + totalProductRevenue + totalTabungan;
+
     // Calculate activity stats
     const activeDays = new Set(monthlyRecords.map(record => record.date)).size;
     const activeEmployees = new Set(monthlyRecords.map(record => record.employeeId)).size;
@@ -118,7 +121,7 @@ const MonthlyReport = ({ businessData }) => {
       totalRevenue,
       totalExpenses: expenses,
       totalEmployeeSalaries: totalGajiKaryawan,
-      ownerSavings: totalTabungan,
+      ownerSavings,
       totalBonuses: totalBonus,
       totalProductRevenue,
       totalGajiDibayarkan,
