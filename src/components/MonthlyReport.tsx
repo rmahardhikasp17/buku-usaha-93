@@ -9,12 +9,49 @@ import {
   PiggyBank,
   TrendingUp,
   ShoppingCart,
+  Briefcase,
   Clock,
   UserCheck
 } from 'lucide-react';
-import { formatCurrency } from '../utils/dataManager';
+import { formatCurrency, exportMonthlyReportToExcel } from '../utils/dataManager';
 import { Badge } from '@/components/ui/badge';
-import { useMonthlyReport, generateMonthlyRecap } from './useMonthlyReport';
+import { useMonthlyReport } from './useMonthlyReport';
+
+
+interface PerEmployeeSalary {
+  employeeId: string;
+  name: string;
+  role: string;
+  gaji: number;
+  bonus: number;
+  potongan: number;
+}
+
+interface MonthlyReportExportProps {
+  businessData: any;
+  selectedMonth: number;
+  selectedYear: number;
+}
+
+
+// Komponen untuk tombol ekspor saja (opsional jika ingin dipakai terpisah)
+export const MonthlyExportButton: React.FC<MonthlyReportExportProps> = ({ businessData, selectedMonth, selectedYear }) => {
+  const handleExport = () => {
+    if (!businessData || !businessData.dailyRecords) {
+      alert('Data tidak tersedia untuk diekspor.');
+      return;
+    }
+    exportMonthlyReportToExcel(businessData, selectedMonth, selectedYear);
+  };
+
+  return (
+    <div className="my-4">
+      <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+        📥 Ekspor Laporan Bulanan ke Excel
+      </button>
+    </div>
+  );
+};
 
 const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
   const {
@@ -26,6 +63,10 @@ const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
     showExport
   } = useMonthlyReport(businessData);
 
+  const totalSalaryPaid = reportData
+    ? (reportData.totalEmployeeSalaries || 0) + (reportData.ownerSalary || 0)
+    : 0;
+
   const stats = [
     {
       title: 'Total Pendapatan Service',
@@ -35,31 +76,37 @@ const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
     },
     {
       title: 'Total Pengeluaran',
-      value: reportData ? formatCurrency(reportData.totalPengeluaran) : formatCurrency(0),
+      value: reportData ? formatCurrency(reportData.totalExpenses) : formatCurrency(0),
       icon: TrendingUp,
       color: 'bg-red-500'
     },
     {
-      title: 'Total Gaji Dibayarkan',
-      value: reportData ? formatCurrency(reportData.totalGajiKaryawan + reportData.totalGajiOwner) : formatCurrency(0),
+      title: 'Total Gaji Karyawan',
+      value: reportData ? formatCurrency(reportData.totalEmployeeSalaries) : formatCurrency(0),
       icon: Users,
       color: 'bg-blue-500'
     },
     {
-      title: 'Total Tabungan Owner',
-      value: reportData ? formatCurrency(reportData.totalTabunganOwner) : formatCurrency(0),
+      title: 'Gaji Owner',
+      value: reportData ? formatCurrency(reportData.ownerSalary) : formatCurrency(0),
       icon: PiggyBank,
       color: 'bg-purple-500'
     },
     {
-      title: 'Total Pendapatan Produk',
-      value: reportData ? formatCurrency(reportData.totalPendapatanProduct) : formatCurrency(0),
+      title: 'Pendapatan Produk',
+      value: reportData ? formatCurrency(reportData.totalProductRevenue) : formatCurrency(0),
       icon: ShoppingCart,
       color: 'bg-orange-500'
     },
     {
+      title: 'Laba Bersih',
+      value: reportData ? formatCurrency(reportData.netProfit) : formatCurrency(0),
+      icon: Briefcase,
+      color: reportData && reportData.netProfit >= 0 ? 'bg-green-500' : 'bg-red-500'
+    },
+    {
       title: 'Hari Aktif',
-      value: reportData ? `${reportData.hariAktif}` : '0',
+      value: reportData ? `${reportData.activeDays}` : '0',
       icon: Clock,
       color: 'bg-blue-500'
     },
@@ -77,7 +124,7 @@ const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">Laporan Bulanan</h2>
-            <p className="text-gray-600 mt-1">Hasilkan laporan bisnis bulanan sesuai logika UMKM</p>
+            <p className="text-gray-600 mt-1">Hasilkan laporan bisnis bulanan</p>
           </div>
           {showExport && (
             <button
@@ -143,59 +190,59 @@ const MonthlyReport: React.FC<{ businessData: any }> = ({ businessData }) => {
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Detail Gaji Owner</h3>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Layanan Owner:</span>
+                  <span>Pendapatan Layanan Pemilik:</span>
                   <span>{formatCurrency(reportData.ownerBreakdown.ownerServiceRevenue)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Bonus Owner:</span>
+                  <span>Layanan Bonus Pemilik:</span>
                   <span>{formatCurrency(reportData.ownerBreakdown.ownerBonus)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>50% Pendapatan Karyawan:</span>
+                  <span>Pendapatan Karyawan 50%:</span>
                   <span>{formatCurrency(reportData.ownerBreakdown.ownerShareFromKaryawan)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Uang Hadir Karyawan:</span>
-                  <span className="text-red-500">-{formatCurrency(reportData.ownerBreakdown.uangHadirKaryawan)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Tabungan Harian (40k x hari hadir):</span>
+                  <span>Penghematan Harian:</span>
                   <span className="text-red-500">-{formatCurrency(reportData.ownerBreakdown.tabunganHarian)}</span>
                 </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Potongan Karyawan:</span>
+                  <span className="text-red-500">-{formatCurrency(reportData.ownerBreakdown.uangHadirKaryawan)}</span>
+                </div>
                 <div className="border-t pt-2 font-medium text-gray-800 flex justify-between">
-                  <span>Gaji Akhir Owner:</span>
-                  <span className="text-green-600 font-bold">{formatCurrency(reportData.totalGajiOwner)}</span>
+                  <span>Gaji Akhir Pemilik:</span>
+                  <span className="text-green-600 font-bold">{formatCurrency(reportData.ownerSalary)}</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Rangkuman Gaji Karyawan */}
+          {/* Gaji Karyawan */}
           {reportData.perEmployeeSalaries && reportData.perEmployeeSalaries.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">💼 Rangkuman Gaji Karyawan Bulan Ini</h3>
               <div className="space-y-3">
-                {reportData.perEmployeeSalaries.map((emp, index) => (
+                {reportData.perEmployeeSalaries.map((emp: PerEmployeeSalary, index: number) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <span className="text-lg">🧑‍🔧</span>
+                      <span className="text-lg">{emp.role === 'Owner' ? '👤' : '🧑‍🔧'}</span>
                       <div>
-                        <span className="font-medium text-gray-800">{emp.name}</span>
+                        <span className="font-medium text-gray-800">{emp.name} ({emp.role})</span>
                         {emp.bonus > 0 && <div className="text-sm text-gray-600">Bonus: {formatCurrency(emp.bonus)}</div>}
-                        {emp.potongan > 0 && <div className="text-sm text-gray-600">Uang Hadir: {formatCurrency(emp.potongan)}</div>}
+                        {emp.potongan > 0 && <div className="text-sm text-gray-600">Potongan: {formatCurrency(emp.potongan)}</div>}
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="font-bold text-gray-800">{formatCurrency(emp.gaji)}</span>
-                      <Badge className={emp.gaji >= 2000000 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                        {emp.gaji >= 2000000 ? '✅ Sesuai UMR' : '❌ Belum UMR'}
+                      <Badge className={emp.role === 'Owner' ? 'bg-gray-100 text-gray-700' : (emp.gaji >= 2000000 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
+                        {emp.role === 'Owner' ? '✅ Owner' : (emp.gaji >= 2000000 ? '✅ Sesuai UMR' : '❌ Belum UMR')}
                       </Badge>
                     </div>
                   </div>
                 ))}
                 <div className="border-t pt-3 mt-3 flex justify-between">
-                  <span className="font-semibold text-gray-800">🧾 Total Gaji Karyawan:</span>
-                  <span className="font-bold text-xl text-green-600">{formatCurrency(reportData.totalGajiKaryawan)}</span>
+                  <span className="font-semibold text-gray-800">🧾 Total Gaji Dibayarkan :</span>
+                  <span className="font-bold text-xl text-green-600">{formatCurrency(totalSalaryPaid)}</span>
                 </div>
               </div>
             </div>

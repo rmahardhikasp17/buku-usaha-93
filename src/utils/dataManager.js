@@ -258,53 +258,92 @@ export const calculateDailySummary = (selectedDate, businessData) => {
 };
 
 // 📤 Export Laporan Bulanan ke Excel (3 Sheet)
-export const exportMonthlyReportToExcel = (recap) => {
+export const exportMonthlyReportToExcel = (businessData, month, year) => {
+  const allRecords = Object.values(businessData.dailyRecords || {});
+  const filteredRecords = allRecords.filter(record => {
+    const date = new Date(record.date);
+    return date.getMonth() === month && date.getFullYear() === year;
+  });
+
+  const groupedByDate = {};
+  filteredRecords.forEach(record => {
+    if (!groupedByDate[record.date]) groupedByDate[record.date] = [];
+    groupedByDate[record.date].push(record);
+  });
+
+  const tabunganPerHari = businessData.tabunganPerHari || 0;
+
   // Sheet 1: Ringkasan Bulanan
+  const summary = generateMonthlyRecap(businessData, month, year);
+
   const summarySheetData = [
-    ['Bulan', `${recap.bulan + 1}`],
-    ['Tahun', `${recap.tahun}`],
-    ['Total Pendapatan Service', recap.totalPendapatanService],
-    ['Total Pendapatan Produk', recap.totalPendapatanProduct],
-    ['Total Pemasukan (dari Halaman Pemasukan)', recap.totalPemasukan],
-    ['Total Pengeluaran (Halaman Pengeluaran)', recap.totalPengeluaran],
-    ['Total Gaji Karyawan', recap.totalGajiKaryawan],
-    ['Total Gaji Owner', recap.totalGajiOwner],
-    ['Total Gaji Dibayarkan', recap.totalGajiKaryawan + recap.totalGajiOwner],
-    ['Total Tabungan Owner', recap.totalTabunganOwner],
-    ['Hari Aktif', recap.hariAktif],
-    ['Karyawan Aktif', recap.activeEmployees]
+    ['Bulan', `${month + 1}`],
+    ['Tahun', `${year}`],
+    ['Total Pendapatan Service', summary.totalPendapatanService],
+    ['Total Pendapatan Produk', summary.totalPendapatanProduct],
+    ['Total Pemasukan (dari Halaman Pemasukan)', summary.totalPemasukan],
+    ['Total Pengeluaran (Halaman Pengeluaran)', summary.totalPengeluaran],
+    ['Total Gaji Karyawan', summary.totalGajiKaryawan],
+    ['Total Gaji Owner', summary.totalGajiOwner],
+    ['Total Tabungan Owner', summary.totalTabunganOwner],
+    ['Laba Bersih', summary.labaBersih],
+    ['Hari Aktif', summary.hariAktif],
+    ['Karyawan Aktif', summary.activeEmployees]
   ];
 
   const summarySheet = XLSX.utils.aoa_to_sheet(summarySheetData);
 
-  // Sheet 2: Rangkuman Gaji Karyawan
-  const salarySheetData = [
-    ['Nama Karyawan', 'Gaji Total', 'Bonus', 'Uang Hadir', 'Status UMR']
+  // Sheet 2: Data Harian (Service & Bonus)
+  const serviceSheetData = [
+    ['Tanggal', 'Nama Karyawan', 'Role', 'Pendapatan Layanan', 'Bonus', 'Gaji Diterima']
   ];
 
-  if (recap.perEmployeeSalaries) {
-    recap.perEmployeeSalaries.forEach(emp => {
-      const statusUMR = emp.gaji >= 2000000 ? 'Sesuai UMR' : 'Belum UMR';
-      salarySheetData.push([emp.name, emp.gaji, emp.bonus, emp.potongan, statusUMR]);
+  Object.entries(groupedByDate).forEach(([date, records]) => {
+    records.forEach(record => {
+      const employee = businessData.employees.find(e => e.id === record.employeeId);
+      const name = employee?.name || 'Tidak diketahui';
+      const role = employee?.isOwner ? 'Owner' : 'Karyawan';
+
+      const result = employee?.isOwner
+        ? calculateOwnerSalary(records, businessData)
+        : calculateEmployeeSalary(record, businessData);
+
+      const layanan = result?.layananTotal || result?.layananOwner || 0;
+      const bonus = result?.bonusTotal || result?.bonusOwner || 0;
+      const gaji = result?.gajiDiterima || 0;
+
+      serviceSheetData.push([date, name, role, layanan, bonus, gaji]);
     });
-  }
+  });
 
-  const salarySheet = XLSX.utils.aoa_to_sheet(salarySheetData);
+  const serviceSheet = XLSX.utils.aoa_to_sheet(serviceSheetData);
 
-  // Sheet 3: Rekap Penjualan Produk (placeholder - will be populated if needed)
+  // Sheet 3: Penjualan Produk
   const productSheetData = [
-    ['Tanggal', 'Nama Karyawan', 'Nama Produk', 'Jumlah', 'Total'],
-    ['Data produk akan ditampilkan di sini jika tersedia']
+    ['Tanggal', 'Nama Karyawan', 'Nama Produk', 'Jumlah', 'Total']
   ];
+
+  filteredRecords.forEach(record => {
+    const employee = businessData.employees.find(e => e.id === record.employeeId);
+    const name = employee?.name || 'Tidak diketahui';
+
+    Object.entries(record.products || {}).forEach(([productId, qty]) => {
+      const product = businessData.products?.find(p => p.id === productId);
+      if (product && Number(qty) > 0) {
+        const total = product.price * Number(qty);
+        productSheetData.push([record.date, name, product.name, qty, total]);
+      }
+    });
+  });
 
   const productSheet = XLSX.utils.aoa_to_sheet(productSheetData);
 
   // Buat Workbook dan simpan
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan');
-  XLSX.utils.book_append_sheet(workbook, salarySheet, 'Rangkuman Gaji');
+  XLSX.utils.book_append_sheet(workbook, serviceSheet, 'Data Harian');
   XLSX.utils.book_append_sheet(workbook, productSheet, 'Penjualan Produk');
 
-  const fileName = `Laporan_Bulanan_${recap.tahun}-${String(recap.bulan + 1).padStart(2, '0')}.xlsx`;
+  const fileName = `Laporan_Bulanan_${year}-${String(month + 1).padStart(2, '0')}.xlsx`;
   XLSX.writeFile(workbook, fileName);
 };
