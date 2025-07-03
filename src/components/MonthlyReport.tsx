@@ -10,6 +10,7 @@ interface BusinessData {
   employees: any[];
   dailyRecords: Record<string, any>;
   transactions: Record<string, any>;
+  productSales?: Record<string, any>;
 }
 
 interface MonthlyReportProps {
@@ -108,6 +109,8 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
     const endDate = new Date(parseInt(year), parseInt(month), 0);
     
+    console.log('🔍 DEBUG: Filter date range:', { selectedMonth, startDate, endDate });
+    
     // Filter daily records for the selected month
     const monthlyRecords = Object.values(businessData.dailyRecords || {}).filter((record: any) => {
       const recordDate = new Date(record.date);
@@ -120,7 +123,29 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       return transactionDate >= startDate && transactionDate <= endDate;
     });
 
-    // Use saved data from dailyRecords instead of recalculating
+    // Filter product sales for the selected month
+    const monthlyProductSales = Object.values(businessData.productSales || {}).filter((sale: any) => {
+      const saleDate = new Date(sale.date);
+      return saleDate >= startDate && saleDate <= endDate;
+    });
+
+    console.log('📊 DEBUG: Filtered data counts:', {
+      monthlyRecords: monthlyRecords.length,
+      monthlyTransactions: monthlyTransactions.length,
+      monthlyProductSales: monthlyProductSales.length
+    });
+
+    // 1. Total Pendapatan - from serviceRevenue only (not bonus or products)
+    const totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
+      return sum + (record.serviceRevenue || 0);
+    }, 0);
+
+    // 2. Total Pengeluaran - from transactions with type === "Pengeluaran"
+    const totalPengeluaran = monthlyTransactions
+      .filter((t: any) => t.type === 'Pengeluaran')
+      .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+
+    // 3. Total Gaji Dibayarkan - combine gajiDiterima from all dailyRecords
     const totalGajiKaryawan = monthlyRecords
       .filter(record => {
         const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
@@ -135,30 +160,41 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       })
       .reduce((sum, record) => sum + (record.gajiDiterima || 0), 0);
 
-    const totalTabunganOwner = monthlyRecords.reduce((sum, record) => sum + (record.potongan || 0), 0);
+    const totalGajiDibayarkan = totalGajiKaryawan + totalGajiOwner;
+
+    // 5. Total Pendapatan Produk - from productSales.total
+    const totalPendapatanProduk = monthlyProductSales.reduce((sum: number, sale: any) => {
+      return sum + (sale.total || 0);
+    }, 0);
+
+    // 4. Total Tabungan Owner - 40k × owner attendance + product sales
+    const ownerAttendanceDays = monthlyRecords.filter(record => {
+      const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+      return employee?.role === 'Owner';
+    }).length;
+    
+    const totalTabunganHarian = ownerAttendanceDays * 40000;
+    const totalTabunganOwner = totalTabunganHarian + totalPendapatanProduk;
 
     const totalBonus = monthlyRecords.reduce((sum, record) => sum + (record.bonusTotal || 0), 0);
-
-    // Calculate total revenue from services
-    const totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
-      const recordTotal = Object.entries(record.services || {})
-        .filter(([_, quantity]) => Number(quantity) > 0)
-        .reduce((recordSum, [serviceId, quantity]) => {
-          return recordSum + calculateServiceTotal(serviceId, Number(quantity));
-        }, 0);
-      return sum + recordTotal;
-    }, 0);
-    
-    const totalPengeluaran = monthlyTransactions
-      .filter((t: any) => t.type === 'Pengeluaran')
-      .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
     // Calculate active days and employee count
     const activeDays = new Set(monthlyRecords.map((record: any) => record.date)).size;
     const activeEmployees = new Set(monthlyRecords.map((record: any) => record.employeeId)).size;
 
-    // Calculate net profit using saved data
-    const labaBersih = totalPendapatan - totalPengeluaran - totalGajiKaryawan - totalTabunganOwner;
+    console.log('💰 DEBUG: Final calculations:', {
+      totalPendapatan,
+      totalPengeluaran,
+      totalGajiDibayarkan,
+      totalGajiKaryawan,
+      totalGajiOwner,
+      totalTabunganOwner,
+      totalPendapatanProduk,
+      ownerAttendanceDays,
+      totalTabunganHarian,
+      activeDays,
+      activeEmployees
+    });
 
     // Calculate per employee salaries
     const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
@@ -167,9 +203,10 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       totalPendapatan,
       totalPengeluaran,
       totalGajiKaryawan,
+      totalGajiDibayarkan,
       totalTabunganOwner,
+      totalPendapatanProduk,
       totalBonus,
-      labaBersih,
       activeDays,
       activeEmployees,
       ownerSalary: totalGajiOwner,
@@ -196,10 +233,10 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
         ['RINGKASAN'],
         ['Total Pendapatan', reportData.totalPendapatan],
         ['Total Pengeluaran', reportData.totalPengeluaran],
-        ['Total Gaji Karyawan', reportData.totalGajiKaryawan],
+        ['Total Gaji Dibayarkan', reportData.totalGajiDibayarkan],
         ['Total Tabungan Owner', reportData.totalTabunganOwner],
+        ['Total Pendapatan Produk', reportData.totalPendapatanProduk],
         ['Total Bonus', reportData.totalBonus],
-        ['Laba Bersih', reportData.labaBersih],
         [''],
         ['AKTIVITAS'],
         ['Hari Aktif', reportData.activeDays],
@@ -286,8 +323,8 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       color: 'bg-red-500'
     },
     {
-      title: 'Total Gaji Karyawan',
-      value: reportData ? formatCurrency(reportData.totalGajiKaryawan) : formatCurrency(0),
+      title: 'Total Gaji Dibayarkan',
+      value: reportData ? formatCurrency(reportData.totalGajiDibayarkan) : formatCurrency(0),
       icon: Users,
       color: 'bg-blue-500'
     },
@@ -405,7 +442,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-gray-800 text-lg">🧾 Total Gaji Dibayarkan :</span>
                     <span className="font-bold text-2xl text-green-600">
-                      {formatCurrency(reportData.totalGajiKaryawan + Math.max(0, reportData.ownerSalary || 0))}
+                      {formatCurrency(reportData.totalGajiDibayarkan)}
                     </span>
                   </div>
                 </div>
@@ -413,15 +450,15 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
             </div>
           )}
 
-          {/* Summary Cards */}
+          {/* Additional Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Laba Bersih</h3>
-              <p className={`text-3xl font-bold ${reportData.labaBersih >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(reportData.labaBersih)}
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Pendapatan Produk</h3>
+              <p className="text-3xl font-bold text-orange-600">
+                {formatCurrency(reportData.totalPendapatanProduk)}
               </p>
               <p className="text-sm text-gray-600 mt-2">
-                Pendapatan - Pengeluaran - Gaji - Tabungan
+                Penjualan produk bulan ini
               </p>
             </div>
 
