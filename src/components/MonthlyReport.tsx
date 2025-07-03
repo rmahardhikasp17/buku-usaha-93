@@ -135,17 +135,17 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       monthlyProductSales: monthlyProductSales.length
     });
 
-    // 1. Total Pendapatan - from serviceRevenue only (not bonus or products)
+    // 1. ✅ Total Pendapatan - HANYA dari serviceRevenue (tanpa bonus/produk)
     const totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
       return sum + (record.serviceRevenue || 0);
     }, 0);
 
-    // 2. Total Pengeluaran - from transactions with type === "Pengeluaran"
+    // 2. ✅ Total Pengeluaran - dari transactions type "Pengeluaran"
     const totalPengeluaran = monthlyTransactions
       .filter((t: any) => t.type === 'Pengeluaran')
       .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
-    // 3. Total Gaji Dibayarkan - combine gajiDiterima from all dailyRecords
+    // 3. ✅ Total Gaji Dibayarkan - gabungkan gajiDiterima dari semua dailyRecords
     const totalGajiKaryawan = monthlyRecords
       .filter(record => {
         const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
@@ -162,12 +162,12 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
 
     const totalGajiDibayarkan = totalGajiKaryawan + totalGajiOwner;
 
-    // 5. Total Pendapatan Produk - from productSales.total
+    // 5. ✅ Total Pendapatan Produk - dari productSales.total
     const totalPendapatanProduk = monthlyProductSales.reduce((sum: number, sale: any) => {
       return sum + (sale.total || 0);
     }, 0);
 
-    // 4. Total Tabungan Owner - 40k × owner attendance + product sales
+    // 4. ✅ Total Tabungan Owner - 40k × kehadiran Owner + produk
     const ownerAttendanceDays = monthlyRecords.filter(record => {
       const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
       return employee?.role === 'Owner';
@@ -176,27 +176,30 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
     const totalTabunganHarian = ownerAttendanceDays * 40000;
     const totalTabunganOwner = totalTabunganHarian + totalPendapatanProduk;
 
+    // ✅ Total Bonus (untuk informasi saja, tidak dihitung ulang)
     const totalBonus = monthlyRecords.reduce((sum, record) => sum + (record.bonusTotal || 0), 0);
 
-    // Calculate active days and employee count
+    // ✅ Statistik aktivitas
     const activeDays = new Set(monthlyRecords.map((record: any) => record.date)).size;
     const activeEmployees = new Set(monthlyRecords.map((record: any) => record.employeeId)).size;
 
-    console.log('💰 DEBUG: Final calculations:', {
-      totalPendapatan,
-      totalPengeluaran,
-      totalGajiDibayarkan,
-      totalGajiKaryawan,
-      totalGajiOwner,
-      totalTabunganOwner,
-      totalPendapatanProduk,
-      ownerAttendanceDays,
-      totalTabunganHarian,
-      activeDays,
-      activeEmployees
+    console.log('💰 DEBUG: Knowledge Base - Final calculations:', {
+      '1_totalPendapatan_serviceRevenue': totalPendapatan,
+      '2_totalPengeluaran_transactions': totalPengeluaran,
+      '3_totalGajiDibayarkan_gajiDiterima': totalGajiDibayarkan,
+      '4_totalTabunganOwner_40k_plus_produk': totalTabunganOwner,
+      '5_totalPendapatanProduk': totalPendapatanProduk,
+      'breakdown': {
+        totalGajiKaryawan,
+        totalGajiOwner,
+        ownerAttendanceDays,
+        totalTabunganHarian,
+        activeDays,
+        activeEmployees
+      }
     });
 
-    // Calculate per employee salaries
+    // ✅ Rangkuman per karyawan (langsung dari dailyRecords)
     const perEmployeeSalaries = calculatePerEmployeeSalaries(monthlyRecords);
 
     setReportData({
