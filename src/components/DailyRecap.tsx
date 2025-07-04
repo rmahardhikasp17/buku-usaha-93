@@ -126,14 +126,15 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
 
   const dailyRecords = getDailyRecords(selectedDate);
   
-  // Calculate grand total properly
+  // Calculate grand total properly - include both main services and bonus services
   const grandTotal = dailyRecords.reduce((sum, record) => {
-    const recordTotal = Object.entries(record.services || {})
+    const serviceTotal = Object.entries(record.services || {})
       .filter(([_, quantity]) => Number(quantity) > 0)
       .reduce((recordSum, [serviceId, quantity]) => {
         return recordSum + calculateServiceTotal(serviceId, Number(quantity));
       }, 0);
-    return sum + recordTotal;
+    const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+    return sum + serviceTotal + bonusTotal;
   }, 0);
 
   // Calculate total employee revenue (excluding owner)
