@@ -68,71 +68,97 @@ export const exportToCSV = (data, filename) => {
 
 export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate) => {
   if (!dailyRecords || dailyRecords.length === 0) {
-    alert('No records to export for this date');
-    return;
+    throw new Error('No records to export for this date');
   }
 
-  // Get all unique services from the business data
-  const allServices = businessData.services || [];
-  
-  // Create headers: Date, Employee Name, [Service Names...], Total Income
-  const serviceHeaders = allServices.map(service => service.name);
-  const headers = ['Date', 'Employee Name', ...serviceHeaders, 'Total Income'];
-  
-  // Process each daily record into a row
-  const exportData = dailyRecords.map(record => {
-    const employeeName = getEmployeeName(record.employeeId, businessData);
-    
-    // Create the row data
-    const row = {
-      'Date': record.date,
-      'Employee Name': employeeName,
-      'Total Income': record.total
-    };
-    
-    // Add service quantities to the row
-    serviceHeaders.forEach(serviceName => {
-      const service = allServices.find(s => s.name === serviceName);
-      if (service) {
-        const quantity = record.services[service.id] || 0;
-        row[serviceName] = quantity;
-      } else {
-        row[serviceName] = 0;
-      }
-    });
-    
-    return row;
-  });
-
-  // Convert to CSV format
-  const csvContent = [
-    headers.join(','),
-    ...exportData.map(row => 
-      headers.map(header => {
-        const value = row[header] || 0;
-        // Clean the value to avoid CSV formatting issues
-        if (typeof value === 'string') {
-          // Remove any commas, quotes, and line breaks that could break CSV
-          const cleanValue = value.replace(/[,"\n\r]/g, ' ').trim();
-          return `"${cleanValue}"`;
+  try {
+    // Dynamic import XLSX
+    import('xlsx').then(XLSX => {
+      const wb = XLSX.utils.book_new();
+      
+      // Calculate employee salaries
+      const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
+        const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+        if (employee?.role !== 'Owner') {
+          const recordTotal = Object.entries(record.services || {})
+            .filter(([_, quantity]) => Number(quantity) > 0)
+            .reduce((recordSum, [serviceId, quantity]) => {
+              const service = businessData.services?.find(s => s.id === serviceId);
+              return recordSum + (service?.price || 0) * Number(quantity);
+            }, 0);
+          return sum + recordTotal;
         }
-        return value;
-      }).join(',')
-    )
-  ].join('\n');
+        return sum;
+      }, 0);
 
-  // Create and download the file
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `daily_recap_${selectedDate}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const employeeCount = dailyRecords.filter(record => {
+        const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+        return employee?.role !== 'Owner';
+      }).length;
+
+      // Prepare export data
+      const exportData = dailyRecords.map(record => {
+        const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+        const isOwner = employee?.role === 'Owner';
+        
+        // Calculate service revenue
+        const serviceRevenue = Object.entries(record.services || {})
+          .filter(([_, quantity]) => Number(quantity) > 0)
+          .reduce((sum, [serviceId, quantity]) => {
+            const service = businessData.services?.find(s => s.id === serviceId);
+            return sum + (service?.price || 0) * Number(quantity);
+          }, 0);
+
+        // Calculate bonus revenue
+        let bonusTotal = 0;
+        if (record.bonusServices && record.bonusQuantities) {
+          Object.entries(record.bonusServices).forEach(([serviceId, bonusData]) => {
+            Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]) => {
+              if (isEnabled) {
+                const bonusService = businessData.services?.find(s => s.id === bonusId);
+                const bonusQty = record.bonusQuantities[serviceId]?.[bonusId] || 0;
+                bonusTotal += (bonusService?.price || 0) * bonusQty;
+              }
+            });
+          });
+        }
+
+        // Calculate salary
+        let salary;
+        if (isOwner) {
+          const employeeShareRevenue = totalEmployeeRevenue * 0.5;
+          const dailySavings = 40000;
+          const employeeDeduction = 10000 * employeeCount;
+          salary = serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings - employeeDeduction;
+        } else {
+          const baseRevenue = serviceRevenue * 0.5;
+          const attendanceBonus = 10000;
+          salary = baseRevenue + bonusTotal + attendanceBonus;
+        }
+
+        return {
+          'Tanggal': record.date,
+          'Nama Karyawan': employee?.name || 'Unknown',
+          'Role': isOwner ? 'Owner' : 'Employee',
+          'Pendapatan Layanan': serviceRevenue,
+          'Bonus Layanan': bonusTotal,
+          'Total Gaji': salary
+        };
+      });
+
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      XLSX.utils.book_append_sheet(wb, ws, 'Daily Recap');
+      
+      // Download file
+      XLSX.writeFile(wb, `daily_recap_${selectedDate}.xlsx`);
+    }).catch(error => {
+      console.error('Failed to load XLSX library:', error);
+      throw new Error('Failed to export Excel file');
+    });
+  } catch (error) {
+    console.error('Export error:', error);
+    throw error;
   }
 };
 

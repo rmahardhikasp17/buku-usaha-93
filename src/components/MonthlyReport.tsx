@@ -92,13 +92,14 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       monthlyProductSales: monthlyProductSales.length
     });
 
-    // 1. 🔢 Total Pendapatan - HANYA dari layanan murni (harga × qty)
+    // 1. 🔢 Total Pendapatan - dari layanan murni + bonus
     const totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
       const recordServiceRevenue = Object.entries(record.services || {})
         .reduce((serviceSum, [serviceId, qty]) => {
           return serviceSum + calculateServiceTotal(serviceId, Number(qty));
         }, 0);
-      return sum + recordServiceRevenue;
+      const recordBonusRevenue = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+      return sum + recordServiceRevenue + recordBonusRevenue;
     }, 0);
 
     // 2. 💸 Total Pengeluaran - dari transactions type "Pengeluaran"

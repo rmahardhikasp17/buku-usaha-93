@@ -116,17 +116,6 @@ const DailyRecap = ({ businessData }) => {
 
   const dailyRecords = getDailyRecords(selectedDate);
   
-  // Calculate grand total properly by summing all service totals + bonus totals
-  const grandTotal = dailyRecords.reduce((sum, record) => {
-    const serviceTotal = Object.entries(record.services || {})
-      .filter(([_, quantity]) => Number(quantity) > 0)
-      .reduce((recordSum, [serviceId, quantity]) => {
-        return recordSum + calculateServiceTotal(serviceId, quantity);
-      }, 0);
-    const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
-    return sum + serviceTotal + bonusTotal;
-  }, 0);
-
   // Calculate total employee revenue (excluding owner)
   const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
     const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
@@ -145,6 +134,13 @@ const DailyRecap = ({ businessData }) => {
     const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
     return employee?.role !== 'Owner';
   }).length;
+
+  // Calculate total salary of all employees for the day
+  const totalGaji = dailyRecords.reduce((sum, record) => {
+    const salaryData = calculateEmployeeSalary(record, totalEmployeeRevenue, employeeCount);
+    return sum + salaryData.salary;
+  }, 0);
+
 
   const handleExport = () => {
     exportDailyRecapToExcel(dailyRecords, businessData, selectedDate);
@@ -207,8 +203,8 @@ const DailyRecap = ({ businessData }) => {
                 <DollarSign className="text-green-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-800">{formatCurrency(grandTotal)}</p>
+                <p className="text-sm text-gray-600">Total Gaji Hari Ini</p>
+                <p className="text-2xl font-bold text-gray-800">{formatCurrency(totalGaji)}</p>
               </div>
             </div>
           </div>
@@ -379,11 +375,11 @@ const DailyRecap = ({ businessData }) => {
               );
             })}
             
-            {/* Grand Total */}
+            {/* Total Gaji */}
             <div className="p-6 bg-gray-50">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-800">Grand Total:</span>
-                <span className="text-3xl font-bold text-green-600">{formatCurrency(grandTotal)}</span>
+                <span className="text-lg font-semibold text-gray-800">Total Gaji Hari Ini:</span>
+                <span className="text-3xl font-bold text-green-600">{formatCurrency(totalGaji)}</span>
               </div>
             </div>
           </div>
