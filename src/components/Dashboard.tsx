@@ -1,14 +1,16 @@
 
 import React from 'react';
 import { Scissors, Users, DollarSign, Calendar, ArrowRight, TrendingUp } from 'lucide-react';
-import { getTodayTotal, formatCurrency } from '../utils/dataManager';
+import { getTodayTotal, getTodayProductSales, getTotalProducts, formatCurrency } from '../utils/dataManager';
 
 interface BusinessData {
   businessName: string;
   services: any[];
   employees: any[];
+  products: any[];
   dailyRecords: Record<string, any>;
   transactions: Record<string, any>;
+  productSales: Record<string, any>;
 }
 
 interface DashboardProps {
@@ -17,7 +19,8 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ businessData, setCurrentPage }) => {
-  const todayTotal = getTodayTotal(businessData) || 0;
+  const todayServiceTotal = getTodayTotal(businessData) || 0;
+  const todayProductSales = getTodayProductSales(businessData) || 0;
   const today = new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
     year: 'numeric',
@@ -41,18 +44,18 @@ const Dashboard: React.FC<DashboardProps> = ({ businessData, setCurrentPage }) =
       emoji: '👤'
     },
     {
-      title: "Pendapatan Hari Ini",
-      value: formatCurrency(todayTotal),
+      title: "Pendapatan Layanan Hari Ini",
+      value: formatCurrency(todayServiceTotal),
       icon: DollarSign,
       color: 'bg-green-600',
       emoji: '💰'
     },
     {
-      title: 'Hari Aktif',
-      value: Object.keys(businessData.dailyRecords || {}).length,
+      title: 'Penjualan Produk Hari Ini',
+      value: formatCurrency(todayProductSales),
       icon: Calendar,
-      color: 'bg-barbershop-red',
-      emoji: '📅'
+      color: 'bg-purple-600',
+      emoji: '📦'
     }
   ];
 

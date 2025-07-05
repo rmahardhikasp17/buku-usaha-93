@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ShoppingCart, Plus, Save, Trash2, Package } from 'lucide-react';
-import { formatCurrency } from '../utils/dataManager';
+import { formatCurrency, getTodayProductSales } from '../utils/dataManager';
 import { toast } from 'sonner';
 
 const ProductSales = ({ businessData, updateBusinessData }) => {
@@ -80,7 +80,7 @@ const ProductSales = ({ businessData, updateBusinessData }) => {
   };
 
   const getTodayTotal = () => {
-    return todaySales.reduce((sum, sale) => sum + sale.total, 0);
+    return getTodayProductSales(businessData);
   };
 
   return (

@@ -17,8 +17,10 @@ const Index = () => {
     businessName: 'Nekat Barbershop',
     services: [],
     employees: [],
+    products: [],
     dailyRecords: {},
     transactions: {},
+    productSales: {},
     sisaPendapatanRecords: {}
   });
 

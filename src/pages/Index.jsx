@@ -44,7 +44,7 @@ const Index = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard businessData={businessData} />;
+        return <Dashboard businessData={businessData} setCurrentPage={setCurrentPage} />;
       case 'services':
         return <ServicesManager businessData={businessData} updateBusinessData={updateBusinessData} />;
       case 'employees':

@@ -23,12 +23,50 @@ export const formatCurrency = (value) => {
   return `Rp ${numValue.toLocaleString('id-ID')}`;
 };
 
+// Calculate today's service revenue including bonuses
 export const getTodayTotal = (businessData) => {
   const today = new Date().toISOString().split('T')[0];
-  const todayRecords = Object.values(businessData.dailyRecords)
+  const todayRecords = Object.values(businessData.dailyRecords || {})
     .filter(record => record.date === today);
   
-  return todayRecords.reduce((sum, record) => sum + record.total, 0);
+  return todayRecords.reduce((sum, record) => {
+    // Calculate service revenue
+    const serviceRevenue = Object.entries(record.services || {})
+      .filter(([_, quantity]) => Number(quantity) > 0)
+      .reduce((serviceSum, [serviceId, quantity]) => {
+        const service = businessData.services?.find(s => s.id === serviceId);
+        return serviceSum + (service?.price || 0) * Number(quantity);
+      }, 0);
+
+    // Calculate bonus revenue
+    let bonusTotal = 0;
+    if (record.bonusServices && record.bonusQuantities) {
+      Object.entries(record.bonusServices).forEach(([serviceId, bonusData]) => {
+        Object.entries(bonusData || {}).forEach(([bonusId, isEnabled]) => {
+          if (isEnabled) {
+            const bonusService = businessData.services?.find(s => s.id === bonusId);
+            const bonusQty = record.bonusQuantities[serviceId]?.[bonusId] || 0;
+            bonusTotal += (bonusService?.price || 0) * bonusQty;
+          }
+        });
+      });
+    }
+
+    return sum + serviceRevenue + bonusTotal;
+  }, 0);
+};
+
+// Calculate today's product sales
+export const getTodayProductSales = (businessData) => {
+  const today = new Date().toISOString().split('T')[0];
+  return Object.values(businessData.productSales || {})
+    .filter(sale => sale.date === today)
+    .reduce((sum, sale) => sum + sale.total, 0);
+};
+
+// Get total number of products
+export const getTotalProducts = (businessData) => {
+  return businessData.products?.length || 0;
 };
 
 export const exportToCSV = (data, filename) => {
