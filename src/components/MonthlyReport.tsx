@@ -264,7 +264,8 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
     }
 
     try {
-      const XLSX = (await import('xlsx')).default;
+      toast.loading('Generating Excel file...');
+      const XLSX = await import('xlsx');
       const workbook = XLSX.utils.book_new();
 
       // Sheet 1: Ringkasan
@@ -360,10 +361,12 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       }
 
       XLSX.writeFile(workbook, `Laporan_Bulanan_${selectedMonth}.xlsx`);
+      toast.dismiss();
       toast.success('Excel file exported successfully with 5 sheets!');
     } catch (error) {
       console.error('Error exporting to Excel:', error);
-      toast.error('Failed to export to Excel');
+      toast.dismiss();
+      toast.error(`Failed to export to Excel: ${error.message}`);
     }
   };
 
@@ -397,16 +400,16 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-card rounded-xl shadow-sm p-8 border">
-        <div className="flex justify-between items-center">
+      <div className="bg-card rounded-xl shadow-sm p-4 md:p-6 lg:p-8 border">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold">Laporan Bulanan (Knowledge Base Baru)</h2>
-            <p className="text-muted-foreground mt-1">Generate monthly business reports</p>
+            <h2 className="text-xl md:text-2xl font-bold">Laporan Bulanan (Knowledge Base Baru)</h2>
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">Generate monthly business reports</p>
           </div>
           <button
             onClick={exportToExcel}
             disabled={!reportData}
-            className="flex items-center space-x-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 md:px-6 py-2 md:py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
           >
             <Download size={20} />
             <span>Export to Excel (5 Sheets)</span>
@@ -415,39 +418,41 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       </div>
 
       {/* Filter Section */}
-      <div className="bg-card rounded-xl shadow-sm p-8 border">
-        <div className="flex items-center space-x-6">
+      <div className="bg-card rounded-xl shadow-sm p-4 md:p-6 lg:p-8 border">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
           <div className="flex items-center space-x-3">
             <Calendar size={20} className="text-muted-foreground" />
             <label className="text-sm font-medium">Bulan & Tahun:</label>
           </div>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-          <button
-            onClick={calculateMonthlyReport}
-            className="bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium"
-          >
-            Hitung Rekap Bulanan
-          </button>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="w-full sm:w-auto px-3 md:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm md:text-base"
+            />
+            <button
+              onClick={calculateMonthlyReport}
+              className="w-full sm:w-auto bg-primary text-primary-foreground px-4 md:px-6 py-2 md:py-3 rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm md:text-base"
+            >
+              Hitung Rekap Bulanan
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
       {reportData && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <div key={index} className="bg-card rounded-xl shadow-sm p-6 border">
+                <div key={index} className="bg-card rounded-xl shadow-sm p-4 md:p-6 border">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">{stat.title}</p>
-                      <p className="text-xl font-bold">{stat.value}</p>
+                      <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1">{stat.title}</p>
+                      <p className="text-lg md:text-xl font-bold">{stat.value}</p>
                     </div>
                     <div className={`${stat.color} p-3 rounded-lg`}>
                       <Icon className="text-white" size={20} />
@@ -460,8 +465,8 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
 
           {/* Owner Breakdown Section */}
           {reportData.ownerBreakdown && (
-            <div className="bg-card rounded-xl shadow-sm p-8 border">
-              <h3 className="text-lg font-semibold mb-6">👤 Breakdown Gaji Owner</h3>
+            <div className="bg-card rounded-xl shadow-sm p-4 md:p-6 lg:p-8 border">
+              <h3 className="text-base md:text-lg font-semibold mb-4 md:mb-6">👤 Breakdown Gaji Owner</h3>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-muted rounded-lg">

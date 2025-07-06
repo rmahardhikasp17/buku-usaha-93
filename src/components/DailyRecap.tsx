@@ -169,15 +169,15 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gray-50 rounded-xl shadow-sm p-8 border border-gray-300">
-        <div className="flex justify-between items-center">
+      <div className="bg-gray-50 rounded-xl shadow-sm p-4 md:p-6 lg:p-8 border border-gray-300">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Daily Recap</h2>
-            <p className="text-gray-600 mt-2">View and export daily revenue summary</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Daily Recap</h2>
+            <p className="text-gray-600 mt-1 md:mt-2 text-sm md:text-base">View and export daily revenue summary</p>
           </div>
           <button
             onClick={handleExport}
-            className="flex items-center space-x-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+            className="flex items-center space-x-2 bg-blue-500 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium text-sm md:text-base"
           >
             <Download size={20} />
             <span>Export Excel</span>
@@ -186,8 +186,8 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
       </div>
 
       {/* Date Selection */}
-      <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
-        <div className="flex items-center space-x-4">
+      <div className="bg-gray-50 rounded-xl shadow-sm p-4 md:p-6 border border-gray-300">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
             <Calendar size={16} />
             <span>Select Date:</span>
@@ -196,33 +196,33 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+            className="w-full sm:w-auto px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm md:text-base"
           />
         </div>
       </div>
 
       {/* Summary Cards - Only Active Employees and Total Revenue */}
       {dailyRecords.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="bg-gray-50 rounded-xl shadow-sm p-4 md:p-6 border border-gray-300">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <User className="text-blue-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Active Employees</p>
-                <p className="text-2xl font-bold text-gray-800">{dailyRecords.length}</p>
+                <p className="text-xs md:text-sm text-gray-600">Active Employees</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-800">{dailyRecords.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-gray-50 rounded-xl shadow-sm p-6 border border-gray-300">
+          <div className="bg-gray-50 rounded-xl shadow-sm p-4 md:p-6 border border-gray-300">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <DollarSign className="text-green-600" size={24} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Gaji Hari Ini</p>
-                <p className="text-2xl font-bold text-gray-800">{formatCurrency(totalGaji)}</p>
+                <p className="text-xs md:text-sm text-gray-600">Total Gaji Hari Ini</p>
+                <p className="text-xl md:text-2xl font-bold text-gray-800">{formatCurrency(totalGaji)}</p>
               </div>
             </div>
           </div>
@@ -231,8 +231,8 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
 
       {/* Records Details */}
       <div className="bg-gray-50 rounded-xl shadow-sm border border-gray-300">
-        <div className="p-8 border-b border-gray-300">
-          <h3 className="text-lg font-semibold text-gray-800">
+        <div className="p-4 md:p-6 lg:p-8 border-b border-gray-300">
+          <h3 className="text-base md:text-lg font-semibold text-gray-800">
             Records for {new Date(selectedDate).toLocaleDateString('id-ID', { 
               weekday: 'long', 
               year: 'numeric', 
@@ -264,21 +264,21 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                 }, 0);
 
               return (
-                <div key={index} className="p-8">
-                  <div className="flex justify-between items-start mb-6">
+                <div key={index} className="p-4 md:p-6 lg:p-8">
+                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-start mb-4 md:mb-6 gap-4 lg:gap-0">
                     <div>
-                      <h4 className="text-lg font-medium text-gray-800">
+                      <h4 className="text-base md:text-lg font-medium text-gray-800">
                         {getEmployeeName(record.employeeId)}
                       </h4>
-                      <p className="text-sm text-gray-600">{isOwner ? 'Owner' : 'Employee'}</p>
+                      <p className="text-xs md:text-sm text-gray-600">{isOwner ? 'Owner' : 'Employee'}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-blue-600 mb-3">
+                    <div className="text-left lg:text-right w-full lg:w-auto">
+                      <p className="text-lg md:text-xl font-bold text-blue-600 mb-2 md:mb-3">
                         Gaji: {formatCurrency(salaryData.salary)}
                       </p>
                       
                       {/* Structured Salary Breakdown */}
-                      <div className="text-sm text-gray-700 space-y-1 bg-blue-50 p-4 rounded-lg border max-w-md">
+                      <div className="text-xs md:text-sm text-gray-700 space-y-1 bg-blue-50 p-3 md:p-4 rounded-lg border w-full lg:max-w-md">
                         <p className="font-medium text-gray-800 mb-2">Rinciannya:</p>
                         
                         {isOwner ? (
@@ -332,9 +332,9 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-gray-700">Services Performed:</h5>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                    <h5 className="text-xs md:text-sm font-medium text-gray-700">Services Performed:</h5>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
                       {Object.entries(record.services || {})
                         .filter(([_, quantity]) => Number(quantity) > 0)
                         .map(([serviceId, quantity]) => {
