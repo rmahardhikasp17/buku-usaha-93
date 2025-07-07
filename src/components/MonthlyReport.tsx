@@ -92,7 +92,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       monthlyProductSales: monthlyProductSales.length
     });
 
-    // 1. 🔢 Total Pendapatan - dari layanan murni + bonus
+    // 1. 🔢 Total Pendapatan - HANYA dari layanan murni + bonus (TIDAK termasuk produk)
     const totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
       const recordServiceRevenue = Object.entries(record.services || {})
         .reduce((serviceSum, [serviceId, qty]) => {
@@ -222,8 +222,8 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
     
     const totalGajiDibayarkan = totalGajiKaryawan + gajiOwner;
 
-    // 6. 💰 Tabungan Owner = 40K × kehadiran owner + total penjualan produk
-    const totalTabunganOwner = tabunganHarian + totalPendapatanProduk;
+    // 6. 💰 Tabungan Owner = HANYA 40K × kehadiran owner (TIDAK termasuk produk)
+    const totalTabunganOwner = tabunganHarian;
 
     // 8. 📊 Statistik tambahan
     const activeDays = new Set(monthlyRecords.map((record: any) => record.date)).size;
@@ -422,6 +422,12 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       value: reportData ? formatCurrency(reportData.totalTabunganOwner) : formatCurrency(0),
       icon: PiggyBank,
       color: 'bg-purple-500'
+    },
+    {
+      title: 'Pendapatan Produk',
+      value: reportData ? formatCurrency(reportData.totalPendapatanProduk) : formatCurrency(0),
+      icon: FileText,
+      color: 'bg-orange-500'
     }
   ];
 
@@ -472,7 +478,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       {/* Stats */}
       {reportData && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
