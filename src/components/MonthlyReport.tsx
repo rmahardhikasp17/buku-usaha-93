@@ -185,13 +185,16 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       // Uang hadir (10K per hari hadir)
       const uangHadir = empRecords.length * 10000;
 
+      // Calculate deductions (if any business rules exist)
+      const potongan = 0; // No deduction rules defined yet
+      
       return {
         employeeId: empId,
         name: employee?.name || 'Unknown',
         role: employee?.role || 'Unknown',
         gaji: layananRevenue + bonusTotal + uangHadir,
         bonus: bonusTotal,
-        potongan: 0,
+        potongan,
         uangHadir
       };
     });
@@ -315,6 +318,31 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
               }, 0);
             const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
             
+            // Calculate final salary
+            let finalSalary;
+            if (employee?.role === 'Owner') {
+              // Calculate owner's daily salary using breakdown formula
+              const employeeRecordsOnDate = reportData.monthlyRecords.filter((r: any) => 
+                r.date === record.date && 
+                businessData.employees?.find(emp => emp.id === r.employeeId)?.role === 'Karyawan'
+              );
+              
+              const employeeServiceRevenueOnDate = employeeRecordsOnDate.reduce((sum: number, empRecord: any) => {
+                return sum + Object.entries(empRecord.services || {})
+                  .reduce((serviceSum, [serviceId, qty]) => {
+                    return serviceSum + calculateServiceTotal(serviceId, Number(qty));
+                  }, 0);
+              }, 0);
+              
+              const ownerShareFromEmployees = employeeServiceRevenueOnDate * 0.5;
+              const dailySavings = 40000; // 40K tabungan harian
+              const uangHadirEmployeesOnDate = employeeRecordsOnDate.length * 10000; // 10K per employee
+              
+              finalSalary = serviceRevenue + bonusTotal + ownerShareFromEmployees - dailySavings - uangHadirEmployeesOnDate;
+            } else {
+              finalSalary = serviceRevenue * 0.5 + bonusTotal + 10000;
+            }
+            
             return [
               record.date,
               employee?.name || 'Unknown',
@@ -322,7 +350,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
               serviceRevenue,
               bonusTotal,
               serviceRevenue,
-              employee?.role === 'Owner' ? 'Per breakdown' : (serviceRevenue * 0.5 + bonusTotal + 10000)
+              finalSalary
             ];
           })
         ];
