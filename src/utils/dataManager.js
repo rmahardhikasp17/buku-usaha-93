@@ -166,12 +166,10 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
         if (isOwner) {
           const employeeShareRevenue = totalEmployeeRevenue * 0.5;
           const dailySavings = 40000;
-          const employeeDeduction = 10000 * employeeCount;
-          salary = serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings - employeeDeduction;
+          salary = serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings;
         } else {
           const baseRevenue = serviceRevenue * 0.5;
-          const attendanceBonus = 10000;
-          salary = baseRevenue + bonusTotal + attendanceBonus;
+          salary = baseRevenue + bonusTotal;
         }
 
         return {

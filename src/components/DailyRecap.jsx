@@ -84,31 +84,26 @@ const DailyRecap = ({ businessData }) => {
     if (isOwner) {
       const employeeShareRevenue = totalEmployeeRevenue * 0.5;
       const dailySavings = 40000;
-      const employeeDeduction = 10000 * employeeCount;
       
       return {
-        salary: serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings - employeeDeduction,
+        salary: serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings,
         breakdown: {
           serviceRevenue,
           bonusTotal,
           bonusDetails,
           employeeShareRevenue,
-          dailySavings,
-          employeeDeduction,
-          employeeCount
+          dailySavings
         }
       };
     } else {
       const baseRevenue = serviceRevenue * 0.5;
-      const attendanceBonus = 10000;
       
       return {
-        salary: baseRevenue + bonusTotal + attendanceBonus,
+        salary: baseRevenue + bonusTotal,
         breakdown: {
           baseRevenue,
           bonusTotal,
-          bonusDetails,
-          attendanceBonus
+          bonusDetails
         }
       };
     }
@@ -286,12 +281,6 @@ const DailyRecap = ({ businessData }) => {
                               <span>- Tabungan Owner:</span>
                               <span className="text-red-600">-{formatCurrency(salaryData.breakdown.dailySavings)}</span>
                             </div>
-                            {salaryData.breakdown.employeeDeduction > 0 && (
-                              <div className="flex justify-between">
-                                <span>- Uang Hadir Karyawan ({salaryData.breakdown.employeeCount} × {formatCurrency(10000)}):</span>
-                                <span className="text-red-600">-{formatCurrency(salaryData.breakdown.employeeDeduction)}</span>
-                              </div>
-                            )}
                           </>
                         ) : (
                           <>
@@ -305,10 +294,6 @@ const DailyRecap = ({ businessData }) => {
                                 <span className="text-green-600">{formatCurrency(bonus.value)}</span>
                               </div>
                             ))}
-                            <div className="flex justify-between">
-                              <span>+ Hadir:</span>
-                              <span className="text-green-600">{formatCurrency(salaryData.breakdown.attendanceBonus)}</span>
-                            </div>
                           </>
                         )}
                       </div>

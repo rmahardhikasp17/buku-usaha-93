@@ -146,22 +146,15 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
     const ownerShareFromKaryawan = totalLayananKaryawan * 0.5;
     const tabunganHarian = ownerRecords.length * 40000;
     
-    // Hitung uang hadir karyawan (10K per karyawan per hari hadir)
-    const uniqueKaryawanDates = new Set();
-    karyawanRecords.forEach(record => {
-      uniqueKaryawanDates.add(`${record.date}-${record.employeeId}`);
-    });
-    const uangHadirKaryawan = uniqueKaryawanDates.size * 10000;
-
     const ownerBreakdown: OwnerBreakdown = {
       ownerServiceRevenue,
       ownerBonus,
       ownerShareFromKaryawan,
       tabunganHarian,
-      uangHadirKaryawan
+      uangHadirKaryawan: 0
     };
 
-    const gajiOwner = ownerServiceRevenue + ownerShareFromKaryawan + ownerBonus - tabunganHarian - uangHadirKaryawan;
+    const gajiOwner = ownerServiceRevenue + ownerShareFromKaryawan + ownerBonus - tabunganHarian;
 
     // 5. 🧑‍🔧 Rangkuman Gaji Karyawan per individu
     const employeeIds = [...new Set(karyawanRecords.map(r => r.employeeId))];
@@ -182,9 +175,6 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
         return sum + calculateBonusTotal(record.bonusServices, record.bonusQuantities);
       }, 0);
 
-      // Uang hadir (10K per hari hadir)
-      const uangHadir = empRecords.length * 10000;
-
       // Calculate deductions (if any business rules exist)
       const potongan = 0; // No deduction rules defined yet
       
@@ -192,10 +182,10 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
         employeeId: empId,
         name: employee?.name || 'Unknown',
         role: employee?.role || 'Unknown',
-        gaji: layananRevenue + bonusTotal + uangHadir,
+        gaji: layananRevenue + bonusTotal,
         bonus: bonusTotal,
         potongan,
-        uangHadir
+        uangHadir: 0
       };
     });
 
@@ -336,11 +326,10 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
               
               const ownerShareFromEmployees = employeeServiceRevenueOnDate * 0.5;
               const dailySavings = 40000; // 40K tabungan harian
-              const uangHadirEmployeesOnDate = employeeRecordsOnDate.length * 10000; // 10K per employee
               
-              finalSalary = serviceRevenue + bonusTotal + ownerShareFromEmployees - dailySavings - uangHadirEmployeesOnDate;
+              finalSalary = serviceRevenue + bonusTotal + ownerShareFromEmployees - dailySavings;
             } else {
-              finalSalary = serviceRevenue * 0.5 + bonusTotal + 10000;
+              finalSalary = serviceRevenue * 0.5 + bonusTotal;
             }
             
             return [
@@ -519,10 +508,6 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
                     <div className="text-sm text-muted-foreground">Tabungan Harian (40K)</div>
                     <div className="font-bold text-red-600">-{formatCurrency(reportData.ownerBreakdown.tabunganHarian)}</div>
                   </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <div className="text-sm text-muted-foreground">Uang Hadir Karyawan (10K)</div>
-                    <div className="font-bold text-red-600">-{formatCurrency(reportData.ownerBreakdown.uangHadirKaryawan)}</div>
-                  </div>
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
@@ -554,11 +539,6 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
                         {emp.bonus > 0 && (
                           <div className="text-sm text-muted-foreground">
                             Bonus: {formatCurrency(emp.bonus)}
-                          </div>
-                        )}
-                        {emp.role === 'Karyawan' && (
-                          <div className="text-sm text-muted-foreground">
-                            Uang Hadir: {formatCurrency(emp.uangHadir)}
                           </div>
                         )}
                       </div>

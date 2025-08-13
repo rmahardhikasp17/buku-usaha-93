@@ -62,7 +62,7 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
 
       if (selectedEmployeeData.role === 'Karyawan') {
         calculatedPotongan = totalRevenue * 0.5; // 50% dari Total Revenue
-        calculatedGajiDiterima = (totalRevenue * 0.5) + 10000 + bonusTotal; // 50% + uang hadir + bonus
+        calculatedGajiDiterima = (totalRevenue * 0.5) + bonusTotal; // 50% + bonus
       } else if (selectedEmployeeData.role === 'Owner') {
         calculatedPotongan = 40000; // Fixed 40000
         calculatedGajiDiterima = totalRevenue - 40000 + bonusTotal; // Total Revenue - 40000 + bonus
@@ -370,7 +370,7 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
               <div className="text-xl font-bold text-green-600">{formatCurrency(gajiDiterima)}</div>
               {selectedEmployeeData && (
                 <p className="text-xs text-gray-500 mt-1">
-                  {selectedEmployeeData.role === 'Karyawan' && '50% Revenue + Rp 10.000 + Bonus'}
+                  {selectedEmployeeData.role === 'Karyawan' && '50% Revenue + Bonus'}
                   {selectedEmployeeData.role === 'Owner' && 'Total Revenue - Rp 40.000 + Bonus'}
                 </p>
               )}
