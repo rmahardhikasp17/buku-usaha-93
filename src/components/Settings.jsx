@@ -171,7 +171,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               placeholder="Enter your business name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
@@ -222,7 +222,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
             <Download size={18} />
             <span>Download {useGzip ? 'JSON (gzip)' : 'JSON'}</span>
           </button>
-          <label className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer shadow-sm">
+          <label className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             <Upload size={18} />
             <span>Restore from JSON / GZIP</span>
             <input type="file" accept=".json,.gz,application/json,application/gzip" className="hidden" onChange={handleImportJSON} />
@@ -315,6 +315,41 @@ const Settings = ({ businessData, updateBusinessData }) => {
           <p><strong>Version:</strong> 1.0.0</p>
           <p><strong>Purpose:</strong> Track employee services and calculate daily revenue</p>
           <p><strong>Data Storage:</strong> Local browser storage</p>
+        </div>
+      </div>
+
+      {/* Penjelasan Fitur */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Penjelasan Fitur</h3>
+        <div className="space-y-3 text-sm text-gray-700">
+          <div>
+            <p className="font-medium">Informasi Bisnis</p>
+            <p>Ubah nama usaha Anda yang akan tampil di seluruh aplikasi.</p>
+          </div>
+          <div>
+            <p className="font-medium">Ringkasan Data</p>
+            <p>Melihat jumlah layanan, karyawan, dan catatan yang tersimpan.</p>
+          </div>
+          <div>
+            <p className="font-medium">Backup & Export</p>
+            <p>Unduh cadangan data ke file JSON atau JSON terkompresi (gzip), serta pulihkan dari file tersebut.</p>
+          </div>
+          <div>
+            <p className="font-medium">Auto-backup ke File</p>
+            <p>Mengaktifkan pencadangan otomatis ke file menggunakan File System Access API agar perubahan disimpan berkala.</p>
+          </div>
+          <div>
+            <p className="font-medium">Storage Settings</p>
+            <p>Meminta izin penyimpanan persisten untuk mengurangi risiko data dibersihkan oleh browser saat ruang rendah.</p>
+          </div>
+          <div>
+            <p className="font-medium">Data Management</p>
+            <p>Menghapus semua data aplikasi secara permanen. Gunakan dengan hati-hati.</p>
+          </div>
+          <div>
+            <p className="font-medium">Informasi Aplikasi</p>
+            <p>Menampilkan detail aplikasi seperti nama, versi, dan lokasi penyimpanan data.</p>
+          </div>
         </div>
       </div>
     </div>
