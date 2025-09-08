@@ -8,7 +8,7 @@ import TransactionForm from '../components/TransactionForm';
 import DailyRecap from '../components/DailyRecap';
 import MonthlyReport from '../components/MonthlyReport';
 import Settings from '../components/Settings';
-import { loadData, saveData, loadDataFromIndexedDB } from '../utils/dataManager';
+import { loadData, saveData, loadDataFromIndexedDB, loadDataFromOPFS } from '../utils/dataManager';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -32,6 +32,13 @@ const Index = () => {
     loadDataFromIndexedDB().then((dbData) => {
       if (dbData) {
         setBusinessData(dbData);
+      } else {
+        // Try OPFS as an additional fallback
+        loadDataFromOPFS().then((opfsData) => {
+          if (opfsData) {
+            setBusinessData(opfsData);
+          }
+        }).catch(() => {});
       }
     }).catch(() => {});
   }, []);
@@ -69,8 +76,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-barbershop-cream">
-      <Navigation 
-        currentPage={currentPage} 
+      <Navigation
+        currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         businessName={businessData.businessName}
       />
