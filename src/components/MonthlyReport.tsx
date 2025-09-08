@@ -277,7 +277,12 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
 
     // 🔧 Apply urgent overrides per-date (replace baseline)
     const ovMap = businessData.urgentOverrides || {};
-    const allDatesInMonth = new Set<string>([...monthlyRecords.map((r: any) => r.date), ...monthlyTransactions.map((t: any) => t.date), ...monthlyProductSales.map((p: any) => p.date)]);
+    const baseDates = new Set<string>([...monthlyRecords.map((r: any) => r.date), ...monthlyTransactions.map((t: any) => t.date), ...monthlyProductSales.map((p: any) => p.date)]);
+    const ovDatesInMonth = Object.keys(ovMap as any).filter((d) => {
+      const dd = new Date(d);
+      return dd >= startDate && dd <= endDate;
+    });
+    const allDatesInMonth = new Set<string>([...baseDates, ...ovDatesInMonth]);
     Array.from(allDatesInMonth).forEach((d) => {
       const ov: any = (ovMap as any)[d];
       if (!ov) return;
