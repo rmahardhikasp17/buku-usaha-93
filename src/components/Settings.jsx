@@ -217,7 +217,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
         <div className="flex flex-col md:flex-row gap-3">
           <button
             onClick={() => handleExportJSON(useGzip)}
-            className="flex items-center justify-center space-x-2 bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600"
+            className="flex items-center justify-center space-x-2 bg-[$#7ED321] text-white px-4 py-2 rounded-lg hover:bg-[$#6CC01F] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[$#7ED321]"
           >
             <Download size={18} />
             <span>Download {useGzip ? 'JSON (gzip)' : 'JSON'}</span>
@@ -245,7 +245,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
             <FileOutput size={18} />
             <span>Backup Sekarang</span>
           </button>
-          <button onClick={disableAutoBackup} className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+          <button onClick={disableAutoBackup} className="flex items-center space-x-2 bg-[#D0021B] text-white px-4 py-2 rounded-lg hover:bg-[#B50117] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D0021B]">
             <Trash2 size={18} />
             <span>Matikan Auto-backup</span>
           </button>
@@ -299,7 +299,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
           </p>
           <button
             onClick={handleClearAllData}
-            className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="flex items-center space-x-2 bg-[#D0021B] text-white px-4 py-2 rounded-lg hover:bg-[#B50117] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D0021B]"
           >
             <Trash2 size={18} />
             <span>Clear All Data</span>
