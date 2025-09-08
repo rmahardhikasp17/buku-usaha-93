@@ -10,6 +10,13 @@ interface BusinessData {
   dailyRecords: Record<string, any>;
   transactions: Record<string, any>;
   productSales?: Record<string, any>;
+  urgentOverrides?: Record<string, {
+    totalPendapatan?: number;
+    totalPengeluaran?: number;
+    totalGajiDibayarkan?: number;
+    tabunganOwner?: number;
+    pendapatanProduk?: number;
+  }>;
 }
 
 interface MonthlyReportProps {
@@ -63,6 +70,57 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
     return total;
   };
 
+  // Helpers to compute baseline totals by date
+  const calcPendapatanForDate = (date: string) => {
+    const records = Object.values(businessData.dailyRecords || {}).filter((r: any) => r.date === date);
+    return records.reduce((sum: number, record: any) => {
+      const servicesSum = Object.entries(record.services || {}).reduce((s, [serviceId, qty]) => s + calculateServiceTotal(serviceId as string, Number(qty)), 0);
+      const bonusSum = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+      return sum + servicesSum + bonusSum;
+    }, 0);
+  };
+  const calcPengeluaranForDate = (date: string) => {
+    return Object.values(businessData.transactions || {})
+      .filter((t: any) => t.date === date && t.type === 'Pengeluaran')
+      .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+  };
+  const calcPendapatanProdukForDate = (date: string) => {
+    return Object.values(businessData.productSales || {})
+      .filter((s: any) => s.date === date)
+      .reduce((sum: number, s: any) => sum + (s.total || 0), 0);
+  };
+  const calcGajiDibayarkanForDate = (date: string) => {
+    const dailyRecords = Object.values(businessData.dailyRecords || {}).filter((r: any) => r.date === date);
+    const totalEmployeeRevenue = dailyRecords.reduce((sum, record) => {
+      const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+      if (employee?.role !== 'Owner') {
+        const recordTotal = Object.entries(record.services || {})
+          .reduce((recordSum, [serviceId, quantity]) => recordSum + calculateServiceTotal(serviceId as string, Number(quantity)), 0);
+        return sum + recordTotal;
+      }
+      return sum;
+    }, 0);
+    return dailyRecords.reduce((sum, record) => {
+      const employee = businessData.employees?.find(emp => emp.id === record.employeeId);
+      const isOwner = employee?.role === 'Owner';
+      const serviceRevenue = Object.entries(record.services || {})
+        .reduce((s, [serviceId, quantity]) => s + calculateServiceTotal(serviceId as string, Number(quantity)), 0);
+      const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
+      if (isOwner) {
+        const employeeShareRevenue = totalEmployeeRevenue * 0.5;
+        const dailySavings = 40000;
+        return sum + (serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings);
+      } else {
+        const baseRevenue = serviceRevenue * 0.5;
+        return sum + (baseRevenue + bonusTotal);
+      }
+    }, 0);
+  };
+  const calcTabunganOwnerForDate = (date: string) => {
+    const ownerCount = Object.values(businessData.dailyRecords || {}).filter((r: any) => r.date === date && (businessData.employees?.find(e => e.id === r.employeeId)?.role === 'Owner')).length;
+    return ownerCount * 40000;
+  };
+
   const calculateMonthlyReport = () => {
     const [year, month] = selectedMonth.split('-');
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -92,25 +150,27 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       monthlyProductSales: monthlyProductSales.length
     });
 
-    // 1. 🔢 Total Pendapatan - HANYA dari layanan murni + bonus (TIDAK termasuk produk)
-    const totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
+    // 1. 🔢 Baseline Total Pendapatan - HANYA dari layanan murni + bonus (TIDAK termasuk produk)
+    let totalPendapatan = monthlyRecords.reduce((sum: number, record: any) => {
       const recordServiceRevenue = Object.entries(record.services || {})
         .reduce((serviceSum, [serviceId, qty]) => {
-          return serviceSum + calculateServiceTotal(serviceId, Number(qty));
+          return serviceSum + calculateServiceTotal(serviceId as string, Number(qty));
         }, 0);
       const recordBonusRevenue = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
       return sum + recordServiceRevenue + recordBonusRevenue;
     }, 0);
 
-    // 2. 💸 Total Pengeluaran - dari transactions type "Pengeluaran"
-    const totalPengeluaran = monthlyTransactions
+    // 2. 💸 Baseline Total Pengeluaran - dari transactions type "Pengeluaran"
+    let totalPengeluaran = monthlyTransactions
       .filter((t: any) => t.type === 'Pengeluaran')
       .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
-    // 7. 📦 Total Pendapatan Produk - dari productSales.total
-    const totalPendapatanProduk = monthlyProductSales.reduce((sum: number, sale: any) => {
+    // 7. 📦 Baseline Total Pendapatan Produk - dari productSales.total
+    let totalPendapatanProduk = monthlyProductSales.reduce((sum: number, sale: any) => {
       return sum + (sale.total || 0);
     }, 0);
+
+    // 3/6. Baseline gaji/tabungan akan dihitung di bawah, override diterapkan setelah baseline tersedia
 
     // Separate records by role
     const ownerRecords = monthlyRecords.filter(record => {
@@ -205,15 +265,43 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       }
     }
 
-    // 3. 💼 Total Gaji Dibayarkan
+    // 3. 💼 Total Gaji Dibayarkan (baseline)
     const totalGajiKaryawan = perEmployeeSalaries
       .filter(emp => emp.role === 'Karyawan')
       .reduce((sum, emp) => sum + emp.gaji, 0);
-    
-    const totalGajiDibayarkan = totalGajiKaryawan + gajiOwner;
 
-    // 6. 💰 Tabungan Owner = HANYA 40K × kehadiran owner (TIDAK termasuk produk)
-    const totalTabunganOwner = tabunganHarian;
+    let totalGajiDibayarkan = totalGajiKaryawan + gajiOwner;
+
+    // 6. 💰 Tabungan Owner (baseline)
+    let totalTabunganOwner = tabunganHarian;
+
+    // 🔧 Apply urgent overrides per-date (replace baseline)
+    const ovMap = businessData.urgentOverrides || {};
+    const allDatesInMonth = new Set<string>([...monthlyRecords.map((r: any) => r.date), ...monthlyTransactions.map((t: any) => t.date), ...monthlyProductSales.map((p: any) => p.date)]);
+    Array.from(allDatesInMonth).forEach((d) => {
+      const ov: any = (ovMap as any)[d];
+      if (!ov) return;
+      if (typeof ov.totalPendapatan === 'number') {
+        totalPendapatan -= calcPendapatanForDate(d);
+        totalPendapatan += ov.totalPendapatan;
+      }
+      if (typeof ov.totalPengeluaran === 'number') {
+        totalPengeluaran -= calcPengeluaranForDate(d);
+        totalPengeluaran += ov.totalPengeluaran;
+      }
+      if (typeof ov.pendapatanProduk === 'number') {
+        totalPendapatanProduk -= calcPendapatanProdukForDate(d);
+        totalPendapatanProduk += ov.pendapatanProduk;
+      }
+      if (typeof ov.totalGajiDibayarkan === 'number') {
+        totalGajiDibayarkan -= calcGajiDibayarkanForDate(d);
+        totalGajiDibayarkan += ov.totalGajiDibayarkan;
+      }
+      if (typeof ov.tabunganOwner === 'number') {
+        totalTabunganOwner -= calcTabunganOwnerForDate(d);
+        totalTabunganOwner += ov.tabunganOwner;
+      }
+    });
 
     // 8. 📊 Statistik tambahan
     const activeDays = new Set(monthlyRecords.map((record: any) => record.date)).size;
