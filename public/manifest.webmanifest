@@ -1,0 +1,17 @@
+{
+  "name": "Usaha Saku Rekap",
+  "short_name": "UsahaSaku",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "description": "Aplikasi pembukuan usaha dengan dukungan offline",
+  "icons": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
