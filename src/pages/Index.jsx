@@ -9,6 +9,7 @@ import ProductSales from '../components/ProductSales';
 import TransactionForm from '../components/TransactionForm';
 import DailyRecap from '../components/DailyRecap';
 import MonthlyReport from '../components/MonthlyReport';
+import Urgent from '../components/Urgent';
 import Settings from '../components/Settings';
 import { loadData, saveData, loadDataFromIndexedDB } from '../utils/dataManager';
 
@@ -67,6 +68,8 @@ const Index = () => {
         return <MonthlyReport businessData={businessData} />;
       case 'settings':
         return <Settings businessData={businessData} updateBusinessData={updateBusinessData} />;
+      case 'urgent':
+        return <Urgent businessData={businessData} updateBusinessData={updateBusinessData} />;
       default:
         return <Dashboard businessData={businessData} />;
     }

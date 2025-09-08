@@ -171,13 +171,13 @@ const Settings = ({ businessData, updateBusinessData }) => {
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               placeholder="Enter your business name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
           <button
             type="submit"
-            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             <Save size={18} />
             <span>Save Business Name</span>
@@ -217,12 +217,12 @@ const Settings = ({ businessData, updateBusinessData }) => {
         <div className="flex flex-col md:flex-row gap-3">
           <button
             onClick={() => handleExportJSON(useGzip)}
-            className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="flex items-center justify-center space-x-2 bg-[#7ED321] text-white px-4 py-2 rounded-lg hover:bg-[#6CC01F] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7ED321]"
           >
             <Download size={18} />
             <span>Download {useGzip ? 'JSON (gzip)' : 'JSON'}</span>
           </button>
-          <label className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer shadow-sm">
+          <label className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             <Upload size={18} />
             <span>Restore from JSON / GZIP</span>
             <input type="file" accept=".json,.gz,application/json,application/gzip" className="hidden" onChange={handleImportJSON} />
@@ -237,15 +237,15 @@ const Settings = ({ businessData, updateBusinessData }) => {
           <h3 className="text-lg font-semibold text-gray-800">Auto-backup ke File</h3>
         </div>
         <div className="flex flex-col md:flex-row gap-3">
-          <button onClick={setupAutoBackup} className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          <button onClick={setupAutoBackup} className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             <FilePlus2 size={18} />
             <span>Setup Auto-backup</span>
           </button>
-          <button onClick={backupNow} className="flex items-center space-x-2 bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          <button onClick={backupNow} className="flex items-center space-x-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             <FileOutput size={18} />
             <span>Backup Sekarang</span>
           </button>
-          <button onClick={disableAutoBackup} className="flex items-center space-x-2 bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-600">
+          <button onClick={disableAutoBackup} className="flex items-center space-x-2 bg-[#D0021B] text-white px-4 py-2 rounded-lg hover:bg-[#B50117] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D0021B]">
             <Trash2 size={18} />
             <span>Matikan Auto-backup</span>
           </button>
@@ -263,7 +263,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
         <div className="flex items-center gap-3 mb-3">
           <button
             onClick={requestPersistentStorage}
-            className="flex items-center space-x-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+            className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             <ShieldCheck size={18} />
             <span>Request Persistent Storage</span>
@@ -281,7 +281,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
               </>
             ) : 'Storage estimate tidak tersedia'}
           </span>
-          <button onClick={refreshStorage} className="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Refresh</button>
+          <button onClick={refreshStorage} className="bg-amber-500 text-white px-3 py-1.5 rounded-md hover:bg-amber-600 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500">Refresh</button>
         </div>
       </div>
 
@@ -299,7 +299,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
           </p>
           <button
             onClick={handleClearAllData}
-            className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            className="flex items-center space-x-2 bg-[#D0021B] text-white px-4 py-2 rounded-lg hover:bg-[#B50117] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#D0021B]"
           >
             <Trash2 size={18} />
             <span>Clear All Data</span>
@@ -315,6 +315,41 @@ const Settings = ({ businessData, updateBusinessData }) => {
           <p><strong>Version:</strong> 1.0.0</p>
           <p><strong>Purpose:</strong> Track employee services and calculate daily revenue</p>
           <p><strong>Data Storage:</strong> Local browser storage</p>
+        </div>
+      </div>
+
+      {/* Penjelasan Fitur */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Penjelasan Fitur</h3>
+        <div className="space-y-3 text-sm text-gray-700">
+          <div>
+            <p className="font-medium">Informasi Bisnis</p>
+            <p>Ubah nama usaha Anda yang akan tampil di seluruh aplikasi.</p>
+          </div>
+          <div>
+            <p className="font-medium">Ringkasan Data</p>
+            <p>Melihat jumlah layanan, karyawan, dan catatan yang tersimpan.</p>
+          </div>
+          <div>
+            <p className="font-medium">Backup & Export</p>
+            <p>Unduh cadangan data ke file JSON atau JSON terkompresi (gzip), serta pulihkan dari file tersebut.</p>
+          </div>
+          <div>
+            <p className="font-medium">Auto-backup ke File</p>
+            <p>Mengaktifkan pencadangan otomatis ke file menggunakan File System Access API agar perubahan disimpan berkala.</p>
+          </div>
+          <div>
+            <p className="font-medium">Storage Settings</p>
+            <p>Meminta izin penyimpanan persisten untuk mengurangi risiko data dibersihkan oleh browser saat ruang rendah.</p>
+          </div>
+          <div>
+            <p className="font-medium">Data Management</p>
+            <p>Menghapus semua data aplikasi secara permanen. Gunakan dengan hati-hati.</p>
+          </div>
+          <div>
+            <p className="font-medium">Informasi Aplikasi</p>
+            <p>Menampilkan detail aplikasi seperti nama, versi, dan lokasi penyimpanan data.</p>
+          </div>
         </div>
       </div>
     </div>
