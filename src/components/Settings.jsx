@@ -217,7 +217,7 @@ const Settings = ({ businessData, updateBusinessData }) => {
         <div className="flex flex-col md:flex-row gap-3">
           <button
             onClick={() => handleExportJSON(useGzip)}
-            className="flex items-center justify-center space-x-2 bg-[$#7ED321] text-white px-4 py-2 rounded-lg hover:bg-[$#6CC01F] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[$#7ED321]"
+            className="flex items-center justify-center space-x-2 bg-[#7ED321] text-white px-4 py-2 rounded-lg hover:bg-[#6CC01F] transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7ED321]"
           >
             <Download size={18} />
             <span>Download {useGzip ? 'JSON (gzip)' : 'JSON'}</span>
