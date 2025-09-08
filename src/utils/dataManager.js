@@ -1,4 +1,53 @@
 const STORAGE_KEY = 'business_bookkeeping_data';
+const DB_NAME = 'businessDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'data';
+
+// Basic IndexedDB helpers (no external deps)
+const openDB = () => {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) return reject(new Error('IndexedDB not supported'));
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('Failed to open DB'));
+  });
+};
+
+const idbGet = async (key) => {
+  try {
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result ?? null);
+      req.onerror = () => reject(req.error || new Error('IDB get error'));
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
+const idbSet = async (key, value) => {
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(value, key);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error || new Error('IDB set error'));
+    });
+  } catch (e) {
+    // Swallow errors; fall back to localStorage
+  }
+};
 
 export const loadData = () => {
   try {
@@ -10,9 +59,21 @@ export const loadData = () => {
   }
 };
 
+export const loadDataFromIndexedDB = async () => {
+  try {
+    const data = await idbGet(STORAGE_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    return null;
+  }
+};
+
 export const saveData = (data) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const json = JSON.stringify(data);
+    localStorage.setItem(STORAGE_KEY, json);
+    // Also persist to IndexedDB (async, fire-and-forget)
+    idbSet(STORAGE_KEY, json);
   } catch (error) {
     console.error('Error saving data:', error);
   }

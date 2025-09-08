@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import Dashboard from '../components/Dashboard';
@@ -11,7 +10,7 @@ import TransactionForm from '../components/TransactionForm';
 import DailyRecap from '../components/DailyRecap';
 import MonthlyReport from '../components/MonthlyReport';
 import Settings from '../components/Settings';
-import { loadData, saveData } from '../utils/dataManager';
+import { loadData, saveData, loadDataFromIndexedDB } from '../utils/dataManager';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -31,6 +30,11 @@ const Index = () => {
     if (savedData) {
       setBusinessData(savedData);
     }
+    loadDataFromIndexedDB().then((dbData) => {
+      if (dbData) {
+        setBusinessData(dbData);
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
