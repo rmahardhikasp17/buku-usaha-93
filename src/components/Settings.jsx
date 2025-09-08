@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
-import { Save, Building, Trash2 } from 'lucide-react';
+import { Save, Building, Trash2, Download, Upload, ShieldCheck } from 'lucide-react';
 
 const Settings = ({ businessData, updateBusinessData }) => {
   const [businessName, setBusinessName] = useState(businessData.businessName);
+  const [persistStatus, setPersistStatus] = useState(null);
 
   const handleSaveBusinessName = (e) => {
     e.preventDefault();
@@ -17,20 +17,74 @@ const Settings = ({ businessData, updateBusinessData }) => {
     const confirmed = window.confirm(
       'Are you sure you want to clear all data? This action cannot be undone.'
     );
-    
+
     if (confirmed) {
       const secondConfirm = window.confirm(
         'This will delete all services, employees, and daily records. Are you absolutely sure?'
       );
-      
+
       if (secondConfirm) {
         updateBusinessData({
           services: [],
           employees: [],
-          dailyRecords: {}
+          products: [],
+          dailyRecords: {},
+          transactions: {},
+          productSales: {},
+          sisaPendapatanRecords: {}
         });
         alert('All data has been cleared.');
       }
+    }
+  };
+
+  const handleExportJSON = () => {
+    try {
+      const json = JSON.stringify(businessData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const ts = new Date().toISOString().replace(/[:.]/g, '-');
+      a.download = `backup_${ts}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Failed to export JSON');
+    }
+  };
+
+  const handleImportJSON = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (typeof data !== 'object' || data === null) throw new Error('Invalid file');
+      updateBusinessData(data);
+      alert('Data restored successfully');
+    } catch (err) {
+      alert('Invalid JSON backup file');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const requestPersistentStorage = async () => {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        const persisted = await navigator.storage.persist();
+        setPersistStatus(persisted ? 'granted' : 'denied');
+        alert(persisted ? 'Persistent storage granted' : 'Persistent storage denied');
+      } else {
+        setPersistStatus('unsupported');
+        alert('Persistent storage is not supported on this browser');
+      }
+    } catch (e) {
+      setPersistStatus('error');
+      alert('Failed to request persistent storage');
     }
   };
 
@@ -96,13 +150,56 @@ const Settings = ({ businessData, updateBusinessData }) => {
         </div>
       </div>
 
+      {/* Backup & Export */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="flex items-center space-x-3 mb-4">
+          <Download className="text-blue-600" size={24} />
+          <h3 className="text-lg font-semibold text-gray-800">Backup & Export</h3>
+        </div>
+        <div className="flex flex-col md:flex-row gap-3">
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Download size={18} />
+            <span>Download JSON</span>
+          </button>
+          <label className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors cursor-pointer">
+            <Upload size={18} />
+            <span>Restore from JSON</span>
+            <input type="file" accept="application/json" className="hidden" onChange={handleImportJSON} />
+          </label>
+        </div>
+      </div>
+
+      {/* Storage Settings */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="flex items-center space-x-3 mb-4">
+          <ShieldCheck className="text-emerald-600" size={24} />
+          <h3 className="text-lg font-semibold text-gray-800">Storage Settings</h3>
+        </div>
+        <p className="text-gray-600 mb-4">Request persistent storage to reduce the chance of browser clearing IndexedDB when space is low.</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={requestPersistentStorage}
+            className="flex items-center space-x-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
+          >
+            <ShieldCheck size={18} />
+            <span>Request Persistent Storage</span>
+          </button>
+          {persistStatus && (
+            <span className="text-sm text-gray-600">Status: {persistStatus}</span>
+          )}
+        </div>
+      </div>
+
       {/* Data Management */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <div className="flex items-center space-x-3 mb-4">
           <Trash2 className="text-red-600" size={24} />
           <h3 className="text-lg font-semibold text-gray-800">Data Management</h3>
         </div>
-        
+
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h4 className="text-red-800 font-medium mb-2">Danger Zone</h4>
           <p className="text-red-700 text-sm mb-4">
