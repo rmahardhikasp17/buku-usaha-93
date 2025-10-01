@@ -22,7 +22,7 @@ const EmployeeManager = ({ businessData, updateBusinessData }) => {
       if (formData.role === 'Karyawan') {
         netIncome = totalIncome * 0.5; // 50% for employees
       } else if (formData.role === 'Owner') {
-        netIncome = totalIncome - 40000; // Total income - 40000 for owner
+        netIncome = totalIncome - 50000; // Total income - 50000 for owner
       }
 
       setFormData(prev => ({ ...prev, netIncome }));

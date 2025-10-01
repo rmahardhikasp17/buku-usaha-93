@@ -93,7 +93,7 @@ const DailyRecap: React.FC<DailyRecapProps> = ({ businessData }) => {
 
     if (isOwner) {
       const employeeShareRevenue = totalEmployeeRevenue * 0.5;
-      const dailySavings = 40000;
+      const dailySavings = 50000;
       
       return {
         salary: serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings,

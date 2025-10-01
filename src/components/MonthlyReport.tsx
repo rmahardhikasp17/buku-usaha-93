@@ -108,7 +108,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       const bonusTotal = calculateBonusTotal(record.bonusServices, record.bonusQuantities);
       if (isOwner) {
         const employeeShareRevenue = totalEmployeeRevenue * 0.5;
-        const dailySavings = 40000;
+        const dailySavings = 50000;
         return sum + (serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings);
       } else {
         const baseRevenue = serviceRevenue * 0.5;
@@ -118,7 +118,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
   };
   const calcTabunganOwnerForDate = (date: string) => {
     const ownerCount = Object.values(businessData.dailyRecords || {}).filter((r: any) => r.date === date && (businessData.employees?.find(e => e.id === r.employeeId)?.role === 'Owner')).length;
-    return ownerCount * 40000;
+    return ownerCount * 50000;
   };
 
   const calculateMonthlyReport = () => {
@@ -204,7 +204,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
     }, 0);
 
     const ownerShareFromKaryawan = totalLayananKaryawan * 0.5;
-    const tabunganHarian = ownerRecords.length * 40000;
+    const tabunganHarian = ownerRecords.length * 50000;
     
     const ownerBreakdown: OwnerBreakdown = {
       ownerServiceRevenue,
@@ -418,7 +418,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
               }, 0);
               
               const ownerShareFromEmployees = employeeServiceRevenueOnDate * 0.5;
-              const dailySavings = 40000; // 40K tabungan harian
+              const dailySavings = 50000; // 50K tabungan harian
               
               finalSalary = serviceRevenue + bonusTotal + ownerShareFromEmployees - dailySavings;
             } else {

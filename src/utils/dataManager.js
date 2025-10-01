@@ -366,7 +366,7 @@ export const exportDailyRecapToExcel = (dailyRecords, businessData, selectedDate
         let salary;
         if (isOwner) {
           const employeeShareRevenue = totalEmployeeRevenue * 0.5;
-          const dailySavings = 40000;
+          const dailySavings = 50000;
           salary = serviceRevenue + bonusTotal + employeeShareRevenue - dailySavings;
         } else {
           const baseRevenue = serviceRevenue * 0.5;

@@ -64,8 +64,8 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
         calculatedPotongan = totalRevenue * 0.5; // 50% dari Total Revenue
         calculatedGajiDiterima = (totalRevenue * 0.5) + bonusTotal; // 50% + bonus
       } else if (selectedEmployeeData.role === 'Owner') {
-        calculatedPotongan = 40000; // Fixed 40000
-        calculatedGajiDiterima = totalRevenue - 40000 + bonusTotal; // Total Revenue - 40000 + bonus
+        calculatedPotongan = 50000; // Fixed 50000
+        calculatedGajiDiterima = totalRevenue - 50000 + bonusTotal; // Total Revenue - 50000 + bonus
       }
 
       setPotongan(calculatedPotongan);
@@ -360,7 +360,7 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
               {selectedEmployeeData && (
                 <p className="text-xs text-gray-500 mt-1">
                   {selectedEmployeeData.role === 'Karyawan' && '50% dari Total Revenue'}
-                  {selectedEmployeeData.role === 'Owner' && 'Fixed Rp 40.000'}
+                  {selectedEmployeeData.role === 'Owner' && 'Fixed Rp 50.000'}
                 </p>
               )}
             </div>
@@ -371,7 +371,7 @@ const DailyInput = ({ businessData, updateBusinessData }) => {
               {selectedEmployeeData && (
                 <p className="text-xs text-gray-500 mt-1">
                   {selectedEmployeeData.role === 'Karyawan' && '50% Revenue + Bonus'}
-                  {selectedEmployeeData.role === 'Owner' && 'Total Revenue - Rp 40.000 + Bonus'}
+                  {selectedEmployeeData.role === 'Owner' && 'Total Revenue - Rp 50.000 + Bonus'}
                 </p>
               )}
             </div>

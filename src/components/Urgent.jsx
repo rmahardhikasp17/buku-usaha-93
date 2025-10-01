@@ -130,7 +130,7 @@ const Urgent = ({ businessData, updateBusinessData }) => {
           <Field label="Total Pendapatan (layanan + bonus)" icon={DollarSign} name="totalPendapatan" placeholder="cth: 1500000" />
           <Field label="Total Pengeluaran" icon={TrendingDown} name="totalPengeluaran" placeholder="cth: 250000" />
           <Field label="Total Gaji Dibayarkan" icon={Users} name="totalGajiDibayarkan" placeholder="cth: 900000" />
-          <Field label="Tabungan Owner" icon={PiggyBank} name="tabunganOwner" placeholder="cth: 40000" />
+          <Field label="Tabungan Owner" icon={PiggyBank} name="tabunganOwner" placeholder="cth: 50000" />
           <Field label="Pendapatan Produk" icon={Package} name="pendapatanProduk" placeholder="cth: 300000" />
         </div>
 
