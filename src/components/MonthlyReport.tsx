@@ -216,6 +216,9 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
 
     const gajiOwner = ownerServiceRevenue + ownerShareFromKaryawan + ownerBonus - tabunganHarian;
 
+    // 📌 Hitung Pendapatan Bersih Owner (Gaji Owner - Total Pengeluaran)
+    const pendapatanBersihOwner = gajiOwner - totalPengeluaran;
+
     // 5. 🧑‍🔧 Rangkuman Gaji Karyawan per individu
     const employeeIds = [...new Set(karyawanRecords.map(r => r.employeeId))];
     const perEmployeeSalaries: EmployeeSalary[] = employeeIds.map(empId => {
@@ -330,6 +333,7 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       totalPengeluaran,
       totalGajiDibayarkan,
       gajiOwner,
+      pendapatanBersihOwner,
       totalGajiKaryawan,
       totalTabunganOwner,
       totalPendapatanProduk,
@@ -362,6 +366,8 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
         ['Total Pendapatan', reportData.totalPendapatan],
         ['Total Pengeluaran', reportData.totalPengeluaran],
         ['Total Gaji Dibayarkan', reportData.totalGajiDibayarkan],
+        ['Gaji Owner (sebelum pengeluaran)', reportData.gajiOwner],
+        ['Pendapatan Bersih Owner', reportData.pendapatanBersihOwner],
         ['Tabungan Owner', reportData.totalTabunganOwner],
         ['Pendapatan Produk', reportData.totalPendapatanProduk],
         [''],
@@ -494,10 +500,16 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
       color: 'bg-red-500'
     },
     {
-      title: 'Total Gaji Dibayarkan',
-      value: reportData ? formatCurrency(reportData.totalGajiDibayarkan) : formatCurrency(0),
+      title: 'Gaji Owner',
+      value: reportData ? formatCurrency(reportData.gajiOwner) : formatCurrency(0),
       icon: Users,
       color: 'bg-blue-500'
+    },
+    {
+      title: 'Pendapatan Bersih Owner',
+      value: reportData ? formatCurrency(reportData.pendapatanBersihOwner) : formatCurrency(0),
+      icon: DollarSign,
+      color: 'bg-emerald-600'
     },
     {
       title: 'Tabungan Owner',
@@ -557,10 +569,10 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
         </div>
       </div>
 
-      {/* Stats */}
+          {/* Stats */}
       {reportData && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -598,15 +610,27 @@ const MonthlyReport: React.FC<MonthlyReportProps> = ({ businessData }) => {
                     <div className="font-bold text-green-600">{formatCurrency(reportData.ownerBreakdown.ownerBonus)}</div>
                   </div>
                   <div className="p-4 bg-muted rounded-lg">
-                    <div className="text-sm text-muted-foreground">Tabungan Harian (40K)</div>
+                    <div className="text-sm text-muted-foreground">Tabungan Harian (50K)</div>
                     <div className="font-bold text-red-600">-{formatCurrency(reportData.ownerBreakdown.tabunganHarian)}</div>
                   </div>
                 </div>
-                <div className="border-t pt-4">
+                <div className="border-t pt-4 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold text-lg">💰 Total Gaji Owner:</span>
-                    <span className="font-bold text-2xl text-primary">
+                    <span className="font-semibold text-base">Gaji Owner (sebelum pengeluaran):</span>
+                    <span className="font-bold text-xl text-blue-600">
                       {formatCurrency(reportData.gajiOwner)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-base text-red-600">Pengeluaran Bulanan:</span>
+                    <span className="font-bold text-xl text-red-600">
+                      -{formatCurrency(reportData.totalPengeluaran)}
+                    </span>
+                  </div>
+                  <div className="border-t pt-3 flex justify-between items-center bg-emerald-50 dark:bg-emerald-950 p-4 rounded-lg">
+                    <span className="font-bold text-lg">💰 Pendapatan Bersih Owner:</span>
+                    <span className="font-bold text-3xl text-emerald-600">
+                      {formatCurrency(reportData.pendapatanBersihOwner)}
                     </span>
                   </div>
                 </div>
